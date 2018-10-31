@@ -318,6 +318,8 @@ def gen_pre_file_for_train():
             embedding_out=config.train_embedding
         )
 
+        # 生成词性表
+        gen_tag_index(train_df)
         print('gen train prepared file, time:%d' % (time.time()-time0))
 
 

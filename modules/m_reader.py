@@ -27,7 +27,7 @@ class Model(nn.Module):
         self.num_align_hops = param['num_align_hops']  # 2
 
         # embedding
-        self.embedding = embedding.Embedding(param['embedding'])
+        self.embedding = embedding.ExtendEmbedding(param['embedding'])
 
         # encoder
         input_size = self.embedding.embedding_dim
@@ -41,6 +41,7 @@ class Model(nn.Module):
             is_bn=False
         )
 
+        input_size = input_size - 9
         self.encoder_a = encoder.Rnn(
             mode=self.mode,
             input_size=input_size,
@@ -95,15 +96,15 @@ class Model(nn.Module):
         :return:
         """
 
-        passage = batch[0]
-        query = batch[1]
-        zhengli = batch[2]  # (batch_size, zhengli_len)
-        fuli = batch[3]
-        wfqd = batch[4]
+        passage = batch[0: 3]
+        query = batch[3: 6]
+        zhengli = batch[6]  # (batch_size, zhengli_len)
+        fuli = batch[7]
+        wfqd = batch[8]
 
         # mask
-        passage_mask = utils.get_mask(passage)
-        query_mask = utils.get_mask(query)
+        passage_mask = utils.get_mask(passage[0])
+        query_mask = utils.get_mask(query[0])
         zhengli_mask = utils.get_mask(zhengli)
         fuli_mask = utils.get_mask(fuli)
         wfqd_mask = utils.get_mask(wfqd)

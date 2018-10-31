@@ -45,7 +45,8 @@ def train():
     else:
         train_data = build_dataset.CustomDataset(
             df_file=config.train_df,
-            vocab_path=config.train_vocab_path
+            vocab_path=config.train_vocab_path,
+            tag_path=config.tag_path
         )
         with open(config.train_pkl, 'wb') as file:
             pickle.dump(train_data, file)
@@ -57,7 +58,8 @@ def train():
     else:
         val_data = build_dataset.CustomDataset(
             df_file=config.val_df,
-            vocab_path=config.train_vocab_path
+            vocab_path=config.train_vocab_path,
+            tag_path=config.tag_path
         )
         with open(config.val_pkl, 'wb') as file:
             pickle.dump(val_data, file)
@@ -92,13 +94,13 @@ def train():
     }
     model = eval(config.model_name).Model(param)
     # 改变embedding_fix
-    model.embedding.embedding_fix = nn.Embedding(
+    model.embedding.sd_embedding.embedding_fix = nn.Embedding(
         num_embeddings=embedding_np.shape[0],
         embedding_dim=embedding_np.shape[1],
         padding_idx=0,
         _weight=torch.Tensor(embedding_np)
     )
-    model.embedding.embedding_fix.weight.requires_grad = False
+    model.embedding.sd_embedding.embedding_fix.weight.requires_grad = False
     model = model.cuda()
 
     # loss

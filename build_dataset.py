@@ -14,7 +14,7 @@ from data_pre import wfqd
 
 class CustomDataset(data.Dataset):
 
-    def __init__(self, df_file, vocab_path, p_max_len=500, q_max_len=30, a_max_len=5):
+    def __init__(self, df_file, vocab_path, tag_path, p_max_len=500, q_max_len=30, a_max_len=5):
         # load
         df = pd.read_csv(df_file)
         passages = df['passage'].values.tolist()
@@ -40,9 +40,10 @@ class CustomDataset(data.Dataset):
         else:
             self.answer_index = None
 
-        # word index
-        self.p_index = [utils.split_word(pp) for pp in passages]
-        self.q_index = [utils.split_word(qq) for qq in querys]
+        # word seg, flags, is_in
+        self.p_word_list, self.p_tag_list, self.p_in, self.q_word_list, self.q_tag_list, self.q_in = \
+            utils.deal_data(passages, querys)
+
         self.zhengli_index = [utils.split_word(zhengli) for zhengli in zhenglis]
         self.fuli_index = [utils.split_word(fuli) for fuli in fulis]
         self.wfqd_index = [utils.split_word(www) for www in wfqds]
@@ -51,6 +52,10 @@ class CustomDataset(data.Dataset):
         with open(vocab_path, 'rb') as file:
             lang = pickle.load(file)
             self.w2i = lang['w2i']
+
+        # tag
+        with open(tag_path, 'rb') as file:
+            self.lang = pickle.load(file)
 
         self.p_max_len = p_max_len
         self.q_max_len = q_max_len
@@ -84,8 +89,13 @@ class CustomDataset(data.Dataset):
 
     def __getitem__(self, item):
         # 正常属性
-        p_word_list = self.p_index[item]
-        q_word_list = self.q_index[item]
+        p_word_list = self.p_word_list[item]
+        p_tag_list = self.p_tag_list[item]
+        p_in = self.p_in[item]
+        q_word_list = self.q_word_list[item]
+        q_tag_list = self.q_tag_list[item]
+        q_in = self.q_in[item]
+
         zhengli_word_list = self.zhengli_index[item]
         fuli_word_list = self.fuli_index[item]
         wfqd_word_list = self.wfqd_index[item]
@@ -99,16 +109,27 @@ class CustomDataset(data.Dataset):
         fuli_word_list = [self.w2i.get(word, self.w2i['<unk>']) for word in fuli_word_list]
         wfqd_word_list = [self.w2i.get(word, self.w2i['<unk>']) for word in wfqd_word_list]
 
+        p_tag_list = [self.lang.get(tag, self.lang['<unk>']) for tag in p_tag_list]
+        q_tag_list = [self.lang.get(tag, self.lang['<unk>']) for tag in q_tag_list]
+
         # padding
         p_word_list = self.__pad__(p_word_list, self.p_max_len, self.w2i['<pad>'])
+        p_tag_list = self.__pad__(p_tag_list, self.p_max_len, self.lang['<pad>'])
+        p_in = self.__pad__(p_in, self.p_max_len, 0)
         q_word_list = self.__pad__(q_word_list, self.q_max_len, self.w2i['<pad>'])
+        q_tag_list = self.__pad__(q_tag_list, self.q_max_len, self.lang['<pad>'])
+        q_in = self.__pad__(q_in, self.q_max_len, 0)
         zhengli_word_list = self.__pad__(zhengli_word_list, self.a_max_len, self.w2i['<pad>'])
         fuli_word_list = self.__pad__(fuli_word_list, self.a_max_len, self.w2i['<pad>'])
         wfqd_word_list = self.__pad__(wfqd_word_list, self.a_max_len, self.w2i['<pad>'])
 
         # tensor
         p_word_list = torch.LongTensor(p_word_list)
+        p_tag_list = torch.LongTensor(p_tag_list)
+        p_in = torch.LongTensor(p_in)
         q_word_list = torch.LongTensor(q_word_list)
+        q_tag_list = torch.LongTensor(q_tag_list)
+        q_in = torch.LongTensor(q_in)
         zhengli_word_list = torch.LongTensor(zhengli_word_list)
         fuli_word_list = torch.LongTensor(fuli_word_list)
         wfqd_word_list = torch.LongTensor(wfqd_word_list)
@@ -169,13 +190,15 @@ class CustomDataset(data.Dataset):
         # batch_q_elmo_char_index = torch.LongTensor(batch_q_elmo_char_index)
 
         if self.answer_index is not None:
-            return p_word_list, q_word_list, zhengli_word_list, fuli_word_list, wfqd_word_list, answer
+            return p_word_list, p_tag_list, p_in, q_word_list, q_tag_list, q_in, \
+                   zhengli_word_list, fuli_word_list, wfqd_word_list, answer
 
         else:
-            return p_word_list, q_word_list, zhengli_word_list, fuli_word_list, wfqd_word_list
+            return p_word_list, p_tag_list, p_in, q_word_list, q_tag_list, q_in, \
+                   zhengli_word_list, fuli_word_list, wfqd_word_list
 
     def __len__(self):
-        return len(self.p_index)
+        return len(self.p_word_list)
 
     def __pad__(self, index_list, max_len, pad):
         if len(index_list) <= max_len:
