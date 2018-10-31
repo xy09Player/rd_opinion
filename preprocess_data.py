@@ -244,12 +244,10 @@ def build_vocab_embedding(list_df, vocab_path, embedding_in_zh, embedding_in_en,
         model_zh = gensim.models.KeyedVectors.load_word2vec_format(embedding_in_zh)
     except Exception as e:
         model_zh = gensim.models.KeyedVectors.load_word2vec_format(embedding_in_zh, binary=True, unicode_errors='ignore')
-    # en
-    model_en = gensim.models.KeyedVectors.load_word2vec_format(embedding_in_en)
 
     tmp = set()
     for word in vocab:
-        if word in model_zh or word in model_en:
+        if word in model_zh:
             tmp.add(word)
     print('word_nums in pre-embedding:%d/%d, ratio:%.4f' % (len(tmp), len(vocab), len(tmp)/len(vocab)))
 
@@ -264,8 +262,6 @@ def build_vocab_embedding(list_df, vocab_path, embedding_in_zh, embedding_in_en,
         i2w[c] = word
         if word in model_zh:
             embedding[c] = model_zh[word]
-        elif word in model_en:
-            embedding[c] = model_en[word]
         c += 1
     w2i['<unk>'] = len(tmp) + 1
     i2w[len(tmp)+1] = '<unk>'
@@ -321,9 +317,6 @@ def gen_pre_file_for_train():
             embedding_in_en=config.pre_embedding_en,
             embedding_out=config.train_embedding
         )
-
-        # 生成词性表
-        gen_tag_index(train_df)   # 生成后，定死，不变了
 
         print('gen train prepared file, time:%d' % (time.time()-time0))
 

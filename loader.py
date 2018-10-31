@@ -16,7 +16,7 @@ def load_w2v(embedding_path):
     return embedding_np
 
 
-def load_data(df_file, vocab_path, tag_path, q_max_len=30, p_max_len=500, a_max_len=5):
+def load_data(df_file, vocab_path, q_max_len=30, p_max_len=500, a_max_len=5):
     """
     load data from .csv
     # 1. load
@@ -47,8 +47,9 @@ def load_data(df_file, vocab_path, tag_path, q_max_len=30, p_max_len=500, a_max_
             else:
                 print('load_data, meet wrong data, answer:%s, zhengli:%s, fuli:%s' % (answer, zhengli, fuli))
 
-    # words, flags, is_in
-    q_index, q_tag, q_in, p_index, p_tag, p_in = utils.deal_data(querys, passages)
+    # words
+    p_index = [utils.split_word(pp) for pp in passages]
+    q_index = [utils.split_word(qq) for qq in querys]
     zhengli_index = [utils.split_word(zhengli) for zhengli in zhenglis]
     fuli_index = [utils.split_word(fuli) for fuli in fulis]
     wfqd_index = [utils.split_word(w) for w in wfqds]
@@ -60,27 +61,17 @@ def load_data(df_file, vocab_path, tag_path, q_max_len=30, p_max_len=500, a_max_
     fuli_index = utils.words2index(fuli_index, vocab_path)
     wfqd_index = utils.words2index(wfqd_index, vocab_path)
 
-    # flags -> index
-    q_tag = utils.tags2index(q_tag, tag_path)
-    p_tag = utils.tags2index(p_tag, tag_path)
-
     # padding
     q_index = utils.pad(q_index, q_max_len)
-    q_tag = utils.pad(q_tag, q_max_len)
-    q_in = utils.pad(q_in, q_max_len)
-
     p_index = utils.pad(p_index, p_max_len)
-    p_tag = utils.pad(p_tag, p_max_len)
-    p_in = utils.pad(p_in, p_max_len)
-
     zhengli_index = utils.pad(zhengli_index, a_max_len)
     fuli_index = utils.pad(fuli_index, a_max_len)
     wfqd_index = utils.pad(wfqd_index, a_max_len)
 
     if 'answer' in df:
-        return [p_index, p_tag, p_in, q_index, q_tag, q_in, zhengli_index, fuli_index, wfqd_index, answers_tmp]
+        return [p_index, q_index, zhengli_index, fuli_index, wfqd_index, answers_tmp]
     else:
-        return [p_index, p_tag, p_in, q_index, q_tag, q_in, zhengli_index, wfqd_index, fuli_index]
+        return [p_index, q_index, zhengli_index, fuli_index. wfqd_index]
 
 
 def build_loader(dataset, batch_size, shuffle, drop_last):
@@ -88,8 +79,8 @@ def build_loader(dataset, batch_size, shuffle, drop_last):
     build data loader
     return: a instance of Dataloader
     """
-    dataset = [torch.LongTensor(d) for d in dataset]
-    dataset = data.TensorDataset(*dataset)
+    # dataset = [torch.LongTensor(d) for d in dataset]
+    # dataset = data.TensorDataset(*dataset)
     data_iter = data.DataLoader(
         dataset=dataset,
         batch_size=batch_size,

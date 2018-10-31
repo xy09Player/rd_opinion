@@ -27,46 +27,34 @@ class Model(nn.Module):
         self.num_align_hops = param['num_align_hops']  # 2
 
         # embedding
-        self.embedding = embedding.ExtendEmbedding(param['embedding'])
+        self.embedding = embedding.Embedding(param['embedding'])
 
-        # encoder: p
+        # encoder
         input_size = self.embedding.embedding_dim
-        self.encoder_p = encoder.Rnn(
+        self.encoder_pq = encoder.Rnn(
             mode=self.mode,
             input_size=input_size,
             hidden_size=self.hidden_size,
-            dropout_p=self.encoder_dropout_p,
-            bidirectional=True,
-            layer_num=self.encoder_layer_num,
-            is_bn=True
-        )
-
-        # encoder: q
-        self.encoder_q = encoder.Rnn(
-            mode=self.mode,
-            input_size=input_size,
-            hidden_size=self.hidden_size,
-            dropout_p=self.encoder_dropout_p,
-            bidirectional=True,
-            layer_num=self.encoder_layer_num,
-            is_bn=True
-        )
-        self.mean_q = pointer.AttentionPooling(self.hidden_size*2, self.hidden_size)
-
-        # encoder: a
-        input_size = self.embedding.embedding_dim - 9
-        self.encoder_a = encoder.Rnn(
-            mode=self.mode,
-            input_size=input_size,
-            hidden_size=self.hidden_size//2,
             dropout_p=self.encoder_dropout_p,
             bidirectional=True,
             layer_num=self.encoder_layer_num,
             is_bn=False
         )
-        self.mean_a = pointer.AttentionPooling(self.hidden_size, self.hidden_size)
 
-        # choose: 正负例
+        self.encoder_a = encoder.Rnn(
+            mode=self.mode,
+            input_size=input_size,
+            hidden_size=self.hidden_size,
+            dropout_p=self.encoder_dropout_p,
+            bidirectional=True,
+            layer_num=1,
+            is_bn=False
+        )
+
+        self.mean_q = pointer.AttentionPooling(self.hidden_size*2, self.hidden_size)
+        self.mean_a = pointer.AttentionPooling(self.hidden_size*2, self.hidden_size)
+
+        # merge q into p
         self.aligner = nn.ModuleList([SeqToSeqAtten() for _ in range(self.num_align_hops)])
         self.aligner_sfu = nn.ModuleList([SFU(self.hidden_size*2, self.hidden_size*2*3, dropout_p=self.dropout_p)
                                           for _ in range(self.num_align_hops)])
@@ -87,10 +75,10 @@ class Model(nn.Module):
             for _ in range(self.num_align_hops)])
 
         # p_rep, choosing
-        self.wp1 = nn.Linear(self.hidden_size*2, self.hidden_size, bias=False)
-        self.wp2 = nn.Linear(self.hidden_size*2, self.hidden_size, bias=False)
-        self.vp = nn.Linear(self.hidden_size, 1, bias=False)
-        self.bi_linear = nn.Linear(self.hidden_size*2, self.hidden_size, bias=False)
+        self.wp1 = nn.Linear(self.hidden_size*2, self.hidden_size)
+        self.wp2 = nn.Linear(self.hidden_size*2, self.hidden_size)
+        self.vp = nn.Linear(self.hidden_size, 1)
+        self.bi_linear = nn.Linear(self.hidden_size*2, self.hidden_size*2)
 
         self.dropout = nn.Dropout(self.dropout_p)
 
@@ -103,48 +91,49 @@ class Model(nn.Module):
 
     def forward(self, batch):
         """
-        :param batch: (passage, query, alter_1, alter_2)
+        :param batch: (p_index, q_index, zhengli_index, fuli_index, wfqd_index)
         :return:
         """
 
-        passage = batch[0: 3]
-        query = batch[3: 6]
-        alter_1 = batch[6]  # (batch_size, a1_len)
-        alter_2 = batch[7]
-        alter_3 = batch[8]
+        passage = batch[0]
+        query = batch[1]
+        zhengli = batch[2]  # (batch_size, zhengli_len)
+        fuli = batch[3]
+        wfqd = batch[4]
 
         # mask
-        passage_mask = utils.get_mask(passage[0])
-        query_mask = utils.get_mask(query[0])
-        alter1_mask = utils.get_mask(alter_1)
-        alter2_mask = utils.get_mask(alter_2)
-        alter3_mask = utils.get_mask(alter_3)
+        passage_mask = utils.get_mask(passage)
+        query_mask = utils.get_mask(query)
+        zhengli_mask = utils.get_mask(zhengli)
+        fuli_mask = utils.get_mask(fuli)
+        wfqd_mask = utils.get_mask(wfqd)
 
         # embedding
         passage_vec = self.embedding(passage)
         query_vec = self.embedding(query)
-        alter1_vec = self.embedding(alter_1)  # (a1_len, batch_size, emb_size)
-        alter2_vec = self.embedding(alter_2)
-        alter3_vec = self.embedding(alter_3)
+        zhengli_vec = self.embedding(zhengli)
+        fuli_vec = self.embedding(fuli)
+        wfqd_vec = self.embedding(wfqd)
 
-        # encoder: p
-        passage_vec = self.encoder_p(passage_vec, passage_mask)  # (p_len, batch_size, hidden_size*2)
+        # encoder
+        passage_vec = self.encoder_pq(passage_vec, passage_mask)  # (p_len, batch_size. hidden_size*2)
         passage_vec = self.dropout(passage_vec)
-
-        # encoder: q
-        query_vec = self.encoder_q(query_vec, query_mask)
+        query_vec = self.encoder_pq(query_vec, query_mask)
         query_vec = self.dropout(query_vec)
+        zhengli_vec = self.encoder_a(zhengli_vec, zhengli_mask)
+        zhengli_vec = self.dropout(zhengli_vec)
+        fuli_vec = self.encoder_a(fuli_vec, fuli_mask)
+        fuli_vec = self.dropout(fuli_vec)
+        wfqd_vec = self.encoder_a(wfqd_vec, wfqd_mask)
+        wfqd_vec = self.dropout(wfqd_vec)
 
-        # encoder: a
-        alter1_vec = self.encoder_a(alter1_vec, alter1_mask)
-        alter1_vec = self.mean_a(alter1_vec, alter1_mask)  # (batch_size, hidden_size)
-        alter2_vec = self.encoder_a(alter2_vec, alter2_mask)
-        alter2_vec = self.mean_a(alter2_vec, alter2_mask)
-        alter3_vec = self.encoder_a(alter3_vec, alter3_mask)
-        alter3_vec = self.mean_a(alter3_vec, alter3_mask)
-        alters = torch.stack([alter1_vec, alter2_vec, alter3_vec]).transpose(0, 1)  # (batch_size, 2, hidden_size)
+        # answer build
+        zhengli_vec = self.mean_a(zhengli_vec, zhengli_mask)  # (batch_size, hidden_size*2)
+        fuli_vec = self.mean_a(fuli_vec, fuli_mask)
+        wfqd_vec = self.mean_a(wfqd_vec, wfqd_mask)
+        answer = torch.stack([zhengli_vec, fuli_vec, wfqd_vec]).transpose(0, 1)  # (batch_size, 3, hidden_size*2)
 
-        # choosing, attention: merge q into p
+        # merge q into p, get p prep
         align_ct = passage_vec
         for i in range(self.num_align_hops):
             qt_align_ct = self.aligner[i](align_ct, query_vec, query_mask)
@@ -155,21 +144,17 @@ class Model(nn.Module):
             hat_ct = self.self_aligner_sfu[i](bar_ct,
                                               torch.cat([ct_align_ct, bar_ct*ct_align_ct, bar_ct-ct_align_ct], dim=2))
             align_ct = self.choose_agg[i](hat_ct, passage_mask)
-        p_choosing_vec = align_ct  # (p_len, batch_size, hidden_size*2)
-
-        # p_rep, choosing
-        q_choosing_vec = self.mean_q(query_vec, query_mask).unsqueeze(0)  # (1, batch_size, hidden_size*2)
-        sj = self.vp(torch.tanh(self.wp1(p_choosing_vec) + self.wp2(q_choosing_vec))).transpose(0, 1)  # (batch_size, p_len, 1)
-        mask_tmp = passage_mask.eq(0).unsqueeze(2)
-        sj.masked_fill_(mask_tmp, -float('inf'))
+        p_prep = align_ct  # (p_len, batch_size, hidden_size*2)
+        q_prep = self.mean_q(query_vec, query_mask).unsqueeze(0)  # (1, batch_size, hidden_size*2)
+        sj = self.vp(torch.tanh(self.wp1(p_prep) + self.wp2(q_prep))).transpose(0, 1)  # (batch_size, p_len, 1)
+        mask = passage_mask.eq(0).unsqueeze(2)
+        sj.masked_fill_(mask, -float('inf'))
         sj = f.softmax(sj, dim=1).transpose(1, 2)  # (batch_size, 1, p_len)
-        p_choosing_vec = torch.bmm(sj, p_choosing_vec.transpose(0, 1)).squeeze(1)  # (batch_size, hidden_size*2)
+        p_prep = torch.bmm(sj, p_prep.transpose(0, 1)).squeeze(1)  # (batch_size, hidden_size*2)
 
         # choosing
-        p_choosing_vec = self.bi_linear(p_choosing_vec)  # (batch_size, hidden_size)
-        p_choosing_vec = f.leaky_relu(p_choosing_vec)
-        p_choosing_vec = self.dropout(p_choosing_vec).unsqueeze(2)
-        outputs = torch.bmm(alters, p_choosing_vec).squeeze(2)  # (batch_size, 3)
+        p_prep = self.bi_linear(p_prep)  # (batch_size, hidden_size*2)
+        outputs = torch.bmm(answer, p_prep.unsqueeze(2)).squeeze(2)  # (batch_size, 3)
 
         return outputs
 

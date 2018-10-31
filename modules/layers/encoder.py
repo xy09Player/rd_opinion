@@ -95,7 +95,7 @@ class Rnn(nn.Module):
             pad_len = seq_len - max_len
             batch_size = vec.size(1)
             hidden_size = self.hidden_size * 2 if self.direction_num else self.hidden_size
-            padding = outputs.new_zeros(pad_len, batch_size, hidden_size).cuda()
+            padding = outputs.new_zeros(pad_len, batch_size, hidden_size)
             outputs = torch.cat([outputs, padding], dim=0)
 
         if need_final_state:

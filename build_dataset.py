@@ -1,0 +1,185 @@
+# coding = utf-8
+# author = xy
+
+import torch
+from torch.utils import data
+import pandas as pd
+import utils
+import json
+import codecs
+import os
+import pickle
+from data_pre import wfqd
+
+
+class CustomDataset(data.Dataset):
+
+    def __init__(self, df_file, vocab_path, p_max_len=500, q_max_len=30, a_max_len=5):
+        # load
+        df = pd.read_csv(df_file)
+        passages = df['passage'].values.tolist()
+        querys = df['query'].values.tolist()
+        zhenglis = df['zhengli']
+        fulis = df['fuli']
+        wfqds = df['wfqd']
+        wfqd_list = wfqd.wfqd_list
+
+        if 'answer' in df:
+            answers = df['answer'].values.tolist()
+            answer_tmp = []
+            for answer, zhengli, fuli in zip(answers, zhenglis, fulis):
+                if answer.strip() == zhengli:
+                    answer_tmp.append(0)
+                elif answer.strip() == fuli:
+                    answer_tmp.append(1)
+                elif answer.strip() in wfqd_list:
+                    answer_tmp.append(2)
+                else:
+                    print('build dataset, meet wrong data, answer:%s, zhengli:%s, fuli:%s' % (answer, zhengli, fuli))
+            self.answer_index = answer_tmp
+        else:
+            self.answer_index = None
+
+        # word index
+        self.p_index = [utils.split_word(pp) for pp in passages]
+        self.q_index = [utils.split_word(qq) for qq in querys]
+        self.zhengli_index = [utils.split_word(zhengli) for zhengli in zhenglis]
+        self.fuli_index = [utils.split_word(fuli) for fuli in fulis]
+        self.wfqd_index = [utils.split_word(www) for www in wfqds]
+
+        # vocab
+        with open(vocab_path, 'rb') as file:
+            lang = pickle.load(file)
+            self.w2i = lang['w2i']
+
+        self.p_max_len = p_max_len
+        self.q_max_len = q_max_len
+        self.a_max_len = a_max_len
+
+        # EMLo数据
+        with open('ELMo/configs/cnn_50_100_512_4096_sample.json', 'r') as fin:
+            self.config = json.load(fin)
+
+        # For the model trained with character-based word encoder.
+        if self.config['token_embedder']['char_dim'] > 0:
+            self.char_lexicon = {}
+            with codecs.open(os.path.join('ELMo/zhs.model', 'char.dic'), 'r', encoding='utf-8') as fpi:
+                for line in fpi:
+                    tokens = line.strip().split('\t')
+                    if len(tokens) == 1:
+                        tokens.insert(0, '\u3000')
+                    token, i = tokens
+                    self.char_lexicon[token] = int(i)
+
+        # For the model trained with word form word encoder.
+        if self.config['token_embedder']['word_dim'] > 0:
+            self.word_lexicon = {}
+            with codecs.open(os.path.join('ELMo/zhs.model', 'word.dic'), 'r', encoding='utf-8') as fpi:
+                for line in fpi:
+                    tokens = line.strip().split('\t')
+                    if len(tokens) == 1:
+                        tokens.insert(0, '\u3000')
+                    token, i = tokens
+                    self.word_lexicon[token] = int(i)
+
+    def __getitem__(self, item):
+        # 正常属性
+        p_word_list = self.p_index[item]
+        q_word_list = self.q_index[item]
+        zhengli_word_list = self.zhengli_index[item]
+        fuli_word_list = self.fuli_index[item]
+        wfqd_word_list = self.wfqd_index[item]
+        if self.answer_index is not None:
+            answer = self.answer_index[item]
+
+        # index
+        p_word_list = [self.w2i.get(word, self.w2i['<unk>']) for word in p_word_list]
+        q_word_list = [self.w2i.get(word, self.w2i['<unk>']) for word in q_word_list]
+        zhengli_word_list = [self.w2i.get(word, self.w2i['<unk>']) for word in zhengli_word_list]
+        fuli_word_list = [self.w2i.get(word, self.w2i['<unk>']) for word in fuli_word_list]
+        wfqd_word_list = [self.w2i.get(word, self.w2i['<unk>']) for word in wfqd_word_list]
+
+        # padding
+        p_word_list = self.__pad__(p_word_list, self.p_max_len, self.w2i['<pad>'])
+        q_word_list = self.__pad__(q_word_list, self.q_max_len, self.w2i['<pad>'])
+        zhengli_word_list = self.__pad__(zhengli_word_list, self.a_max_len, self.w2i['<pad>'])
+        fuli_word_list = self.__pad__(fuli_word_list, self.a_max_len, self.w2i['<pad>'])
+        wfqd_word_list = self.__pad__(wfqd_word_list, self.a_max_len, self.w2i['<pad>'])
+
+        # tensor
+        p_word_list = torch.LongTensor(p_word_list)
+        q_word_list = torch.LongTensor(q_word_list)
+        zhengli_word_list = torch.LongTensor(zhengli_word_list)
+        fuli_word_list = torch.LongTensor(fuli_word_list)
+        wfqd_word_list = torch.LongTensor(wfqd_word_list)
+        if self.answer_index is not None:
+            answer = torch.LongTensor([answer])
+
+
+        # # elmo : c
+        # batch_c_word_list = ['<bos>'] + batch_c_word_list + ['<eos>']
+        # batch_c_elmo_word_index = [self.word_lexicon.get(word, self.word_lexicon['<oov>']) for word in batch_c_word_list]
+        # batch_c_elmo_word_index = batch_c_elmo_word_index + [self.word_lexicon['<pad>']]*(self.c_max_len+2-len(batch_c_elmo_word_index))
+        #
+        # batch_c_elmo_char_index = []
+        # max_char_len = self.config['token_embedder']['max_characters_per_token']
+        # for word in batch_c_word_list:
+        #     if len(word) + 2 > max_char_len:
+        #         word = word[: max_char_len-2]
+        #     tmp = [self.char_lexicon['<eow>']]
+        #     if word == '<bos>' or word == '<eos>':
+        #         tmp.append(self.char_lexicon[word])
+        #         tmp.append(self.char_lexicon['<bow>'])
+        #     else:
+        #         for cc in word:
+        #             tmp.append(self.char_lexicon.get(cc, self.char_lexicon['<oov>']))
+        #         tmp.append(self.char_lexicon['<bow>'])
+        #     tmp = tmp + [self.char_lexicon['<pad>']]*(max_char_len-len(tmp))
+        #     batch_c_elmo_char_index.append(tmp)
+        # batch_c_elmo_char_index = batch_c_elmo_char_index + [[self.char_lexicon['<pad>']]*max_char_len] * \
+        #                                                 (self.c_max_len+2-len(batch_c_elmo_char_index))
+        #
+        # # elmo: q
+        # batch_q_word_list = ['<bos>'] + batch_q_word_list + ['<eos>']
+        # batch_q_elmo_word_index = [self.word_lexicon.get(word, self.word_lexicon['<oov>']) for word in batch_q_word_list]
+        # batch_q_elmo_word_index = batch_q_elmo_word_index + [self.word_lexicon['<pad>']]*(self.q_max_len+2-len(batch_q_elmo_word_index))
+        #
+        # batch_q_elmo_char_index = []
+        # max_char_len = self.config['token_embedder']['max_characters_per_token']
+        # for word in batch_q_word_list:
+        #     if len(word) + 2 > max_char_len:
+        #         word = word[: max_char_len-2]
+        #     tmp = [self.char_lexicon['<eow>']]
+        #     if word == '<bos>' or word == '<eos>':
+        #         tmp.append(self.char_lexicon[word])
+        #         tmp.append(self.char_lexicon['<bow>'])
+        #     else:
+        #         for cc in word:
+        #             tmp.append(self.char_lexicon.get(cc, self.char_lexicon['<oov>']))
+        #         tmp.append(self.char_lexicon['<bow>'])
+        #     tmp = tmp + [self.char_lexicon['<pad>']]*(max_char_len-len(tmp))
+        #     batch_q_elmo_char_index.append(tmp)
+        # batch_q_elmo_char_index = batch_q_elmo_char_index + [[self.char_lexicon['<pad>']]*max_char_len] * \
+        #                                                 (self.q_max_len+2-len(batch_q_elmo_char_index))
+
+        # tensor
+        # batch_c_elmo_word_index = torch.LongTensor(batch_c_elmo_word_index)
+        # batch_c_elmo_char_index = torch.LongTensor(batch_c_elmo_char_index)
+        # batch_q_elmo_word_index = torch.LongTensor(batch_q_elmo_word_index)
+        # batch_q_elmo_char_index = torch.LongTensor(batch_q_elmo_char_index)
+
+        if self.answer_index is not None:
+            return p_word_list, q_word_list, zhengli_word_list, fuli_word_list, wfqd_word_list, answer
+
+        else:
+            return p_word_list, q_word_list, zhengli_word_list, fuli_word_list, wfqd_word_list
+
+    def __len__(self):
+        return len(self.p_index)
+
+    def __pad__(self, index_list, max_len, pad):
+        if len(index_list) <= max_len:
+            index_list = index_list + [pad] * (max_len - len(index_list))
+        else:
+            index_list = index_list[: max_len]
+        return index_list

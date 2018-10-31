@@ -76,52 +76,6 @@ def mean(weight):
     return weight
 
 
-def deal_data(querys, passages):
-    """
-     index, tag, is_in_question
-    :return:
-    """
-
-    qqq_index = []
-    qqq_tag = []
-    qqq_in = []
-
-    ppp_index = []
-    ppp_tag = []
-    ppp_in = []
-
-    for q, p in zip(querys, passages):
-        q_list, q_tag = split_word(q, have_tag=True)
-        p_list, p_tag = split_word(p, have_tag=True)
-
-        flag_q = []
-        for qq in q_list:
-            if qq in p_list:
-                flag_q.append(1)
-            else:
-                flag_q.append(0)
-
-        flag_p = []
-        for pp in p_list:
-            if pp in q_list:
-                flag_p.append(1)
-            else:
-                flag_p.append(0)
-
-        assert len(q_list) == len(q_tag) == len(flag_q)
-        assert len(p_list) == len(p_tag) == len(flag_p)
-
-        qqq_index.append(q_list)
-        qqq_tag.append(q_tag)
-        qqq_in.append(flag_q)
-
-        ppp_index.append(p_list)
-        ppp_tag.append(p_tag)
-        ppp_in.append(flag_p)
-
-    return qqq_index, qqq_tag, qqq_in, ppp_index, ppp_tag, ppp_in
-
-
 def mask_logits(target, mask):
     mask = mask.type(torch.float32)
     return target * mask + (1 - mask) * (-1e30)

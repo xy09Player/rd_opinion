@@ -17,9 +17,6 @@ class Config(config_base.ConfigBase):
     dropout_p = 0.2
     val_every = 100
     val_mean = False  # 这个指标用来衡量，是否是每隔固定次数验证一次
-    all_val_data = True  # 是否使用所有验证数据进行验证
-
-    val_split_value = 0.7
 
     num_align_hops = 2
 
