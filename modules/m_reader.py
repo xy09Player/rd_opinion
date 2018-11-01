@@ -29,8 +29,12 @@ class Model(nn.Module):
         # embedding
         self.embedding = embedding.ExtendEmbedding(param['embedding'])
 
+        # elmo 融合比例控制
+        self.s1 = nn.Parameter(torch.Tensor([1, 1, 1]))
+        self.r1 = nn.Parameter(torch.Tensor([0.3]))
+
         # encoder
-        input_size = self.embedding.embedding_dim
+        input_size = self.embedding.embedding_dim + 1024
         self.encoder_pq = encoder.Rnn(
             mode=self.mode,
             input_size=input_size,
@@ -90,7 +94,7 @@ class Model(nn.Module):
             if isinstance(module, nn.Linear):
                 nn.init.xavier_uniform_(module.weight, 0.1)
 
-    def forward(self, batch):
+    def forward(self, batch, elmo):
         """
         :param batch: (p_index, q_index, zhengli_index, fuli_index, wfqd_index)
         :return:
@@ -115,6 +119,25 @@ class Model(nn.Module):
         zhengli_vec = self.embedding(zhengli)
         fuli_vec = self.embedding(fuli)
         wfqd_vec = self.embedding(wfqd)
+
+        # elmo
+        p_elmo, q_elmo, zhengli_elmo, fuli_elmo, wfqd_elmo = elmo
+        s1 = f.softmax(self.s1, dim=0)
+
+        p_elmo = self.r1*(s1[0]*p_elmo[0] + s1[1]*p_elmo[1] + s1[2]*p_elmo[2]).transpose(0, 1)  # (c_len, batch_size, 1024)
+        passage_vec = torch.cat([passage_vec, p_elmo], dim=2)  # (c_len, batch_size, w2v+1024)
+
+        q_elmo = self.r1*(s1[0]*q_elmo[0] + s1[1]*q_elmo[1] + s1[2]*q_elmo[2]).transpose(0, 1)
+        query_vec = torch.cat([query_vec, q_elmo], dim=2)
+
+        zhengli_elmo = self.r1*(s1[0]*zhengli_elmo[0] + s1[1]*zhengli_elmo[1] + s1[2]*zhengli_elmo[2]).transpose(0, 1)
+        zhengli_vec = torch.cat([zhengli_vec, zhengli_elmo], dim=2)
+
+        fuli_elmo = self.r1*(s1[0]*fuli_elmo[0] + s1[1]*fuli_elmo[1] + s1[2]*fuli_elmo[2]).transpose(0, 1)
+        fuli_vec = torch.cat([fuli_vec, fuli_elmo], dim=2)
+
+        wfqd_elmo = self.r1*(s1[0]*wfqd_elmo[0] + s1[1]*wfqd_elmo[1] + s1[2]*wfqd_elmo[2]).transpose(0, 1)
+        wfqd_vec = torch.cat([wfqd_vec, wfqd_elmo], dim=2)
 
         # encoder
         passage_vec = self.encoder_pq(passage_vec, passage_mask)  # (p_len, batch_size. hidden_size*2)

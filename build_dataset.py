@@ -20,9 +20,9 @@ class CustomDataset(data.Dataset):
         df = pd.read_csv(df_file)
         passages = df['passage'].values.tolist()
         querys = df['query'].values.tolist()
-        zhenglis = df['zhengli']
-        fulis = df['fuli']
-        wfqds = df['wfqd']
+        zhenglis = df['zhengli'].values.tolist()
+        fulis = df['fuli'].values.tolist()
+        wfqds = df['wfqd'].values.tolist()
         wfqd_list = wfqd.wfqd_list
 
         if 'answer' in df:
@@ -65,6 +65,7 @@ class CustomDataset(data.Dataset):
         # EMLo数据
         with open('ELMo/configs/cnn_50_100_512_4096_sample.json', 'r') as fin:
             self.config = json.load(fin)
+        self.max_char_len = self.config['token_embedder']['max_characters_per_token']
 
         # For the model trained with character-based word encoder.
         if self.config['token_embedder']['char_dim'] > 0:
@@ -137,66 +138,46 @@ class CustomDataset(data.Dataset):
         if self.answer_index is not None:
             answer = torch.LongTensor([answer])
 
+        # Elmo
+        p_word_list_elmo = self.p_word_list[item]
+        q_word_list_elmo = self.q_word_list[item]
+        zhengli_word_list_elmo = self.zhengli_index[item]
+        fuli_word_list_elmo = self.fuli_index[item]
+        wfqd_word_list_elmo = self.wfqd_index[item]
 
-        # # elmo : c
-        # batch_c_word_list = ['<bos>'] + batch_c_word_list + ['<eos>']
-        # batch_c_elmo_word_index = [self.word_lexicon.get(word, self.word_lexicon['<oov>']) for word in batch_c_word_list]
-        # batch_c_elmo_word_index = batch_c_elmo_word_index + [self.word_lexicon['<pad>']]*(self.c_max_len+2-len(batch_c_elmo_word_index))
-        #
-        # batch_c_elmo_char_index = []
-        # max_char_len = self.config['token_embedder']['max_characters_per_token']
-        # for word in batch_c_word_list:
-        #     if len(word) + 2 > max_char_len:
-        #         word = word[: max_char_len-2]
-        #     tmp = [self.char_lexicon['<eow>']]
-        #     if word == '<bos>' or word == '<eos>':
-        #         tmp.append(self.char_lexicon[word])
-        #         tmp.append(self.char_lexicon['<bow>'])
-        #     else:
-        #         for cc in word:
-        #             tmp.append(self.char_lexicon.get(cc, self.char_lexicon['<oov>']))
-        #         tmp.append(self.char_lexicon['<bow>'])
-        #     tmp = tmp + [self.char_lexicon['<pad>']]*(max_char_len-len(tmp))
-        #     batch_c_elmo_char_index.append(tmp)
-        # batch_c_elmo_char_index = batch_c_elmo_char_index + [[self.char_lexicon['<pad>']]*max_char_len] * \
-        #                                                 (self.c_max_len+2-len(batch_c_elmo_char_index))
-        #
-        # # elmo: q
-        # batch_q_word_list = ['<bos>'] + batch_q_word_list + ['<eos>']
-        # batch_q_elmo_word_index = [self.word_lexicon.get(word, self.word_lexicon['<oov>']) for word in batch_q_word_list]
-        # batch_q_elmo_word_index = batch_q_elmo_word_index + [self.word_lexicon['<pad>']]*(self.q_max_len+2-len(batch_q_elmo_word_index))
-        #
-        # batch_q_elmo_char_index = []
-        # max_char_len = self.config['token_embedder']['max_characters_per_token']
-        # for word in batch_q_word_list:
-        #     if len(word) + 2 > max_char_len:
-        #         word = word[: max_char_len-2]
-        #     tmp = [self.char_lexicon['<eow>']]
-        #     if word == '<bos>' or word == '<eos>':
-        #         tmp.append(self.char_lexicon[word])
-        #         tmp.append(self.char_lexicon['<bow>'])
-        #     else:
-        #         for cc in word:
-        #             tmp.append(self.char_lexicon.get(cc, self.char_lexicon['<oov>']))
-        #         tmp.append(self.char_lexicon['<bow>'])
-        #     tmp = tmp + [self.char_lexicon['<pad>']]*(max_char_len-len(tmp))
-        #     batch_q_elmo_char_index.append(tmp)
-        # batch_q_elmo_char_index = batch_q_elmo_char_index + [[self.char_lexicon['<pad>']]*max_char_len] * \
-        #                                                 (self.q_max_len+2-len(batch_q_elmo_char_index))
+        p_word_elmo, p_char_elmo = self.__gen_elmo__(p_word_list_elmo, self.p_max_len)
+        q_word_elmo, q_char_elmo = self.__gen_elmo__(q_word_list_elmo, self.q_max_len)
+        zhengli_word_elmo, zhengli_char_elmo = self.__gen_elmo__(zhengli_word_list_elmo, self.a_max_len)
+        fuli_word_elmo, fuli_char_elmo = self.__gen_elmo__(fuli_word_list_elmo, self.a_max_len)
+        wfqd_word_elmo, wfqd_char_elmo = self.__gen_elmo__(wfqd_word_list_elmo, self.a_max_len)
 
         # tensor
-        # batch_c_elmo_word_index = torch.LongTensor(batch_c_elmo_word_index)
-        # batch_c_elmo_char_index = torch.LongTensor(batch_c_elmo_char_index)
-        # batch_q_elmo_word_index = torch.LongTensor(batch_q_elmo_word_index)
-        # batch_q_elmo_char_index = torch.LongTensor(batch_q_elmo_char_index)
+        p_word_elmo = torch.LongTensor(p_word_elmo)
+        p_char_elmo = torch.LongTensor(p_char_elmo)
+
+        q_word_elmo = torch.LongTensor(q_word_elmo)
+        q_char_elmo = torch.LongTensor(q_char_elmo)
+
+        zhengli_word_elmo = torch.LongTensor(zhengli_word_elmo)
+        zhengli_char_elmo = torch.LongTensor(zhengli_char_elmo)
+
+        fuli_word_elmo = torch.LongTensor(fuli_word_elmo)
+        fuli_char_elmo = torch.LongTensor(fuli_char_elmo)
+
+        wfqd_word_elmo = torch.LongTensor(wfqd_word_elmo)
+        wfqd_char_elmo = torch.LongTensor(wfqd_char_elmo)
 
         if self.is_test is False:
             return p_word_list, p_tag_list, p_in, q_word_list, q_tag_list, q_in, \
-                   zhengli_word_list, fuli_word_list, wfqd_word_list, answer
+                   zhengli_word_list, fuli_word_list, wfqd_word_list, \
+                   p_word_elmo, p_char_elmo, q_word_elmo, q_char_elmo, zhengli_word_elmo, zhengli_char_elmo, \
+                   fuli_word_elmo, fuli_char_elmo, wfqd_word_elmo, wfqd_char_elmo, answer
 
         else:
             return p_word_list, p_tag_list, p_in, q_word_list, q_tag_list, q_in, \
-                   zhengli_word_list, fuli_word_list, wfqd_word_list
+                   zhengli_word_list, fuli_word_list, wfqd_word_list, \
+                   p_word_elmo, p_char_elmo, q_word_elmo, q_char_elmo, zhengli_word_elmo, zhengli_char_elmo, \
+                   fuli_word_elmo, fuli_char_elmo, wfqd_word_elmo, wfqd_char_elmo
 
     def __len__(self):
         return len(self.p_word_list)
@@ -207,3 +188,36 @@ class CustomDataset(data.Dataset):
         else:
             index_list = index_list[: max_len]
         return index_list
+
+    def __gen_elmo__(self, word_list, max_len):
+        word_list = ['<bos>'] + list(word_list) + ['<eos>']
+
+        word_elmo_list = [self.word_lexicon.get(word, self.word_lexicon['<oov>']) for word in word_list]
+        word_elmo_list = self.__pad__(word_elmo_list, max_len+2, self.word_lexicon['<pad>'])
+
+        char_elmo_list = []
+        for word in word_list:
+            if len(word) + 2 > self.max_char_len:
+                word = word[: self.max_char_len-2]
+            tmp = [self.char_lexicon['<eow>']]
+            if word == '<bos>' or word == '<eos>':
+                tmp.append(self.char_lexicon[word])
+                tmp.append(self.char_lexicon['<bow>'])
+            else:
+                for cc in word:
+                    tmp.append(self.char_lexicon.get(cc, self.char_lexicon['<oov>']))
+                tmp.append(self.char_lexicon['<bow>'])
+            tmp = tmp + [self.char_lexicon['<pad>']]*(self.max_char_len-len(tmp))
+            char_elmo_list.append(tmp)
+        char_elmo_list = char_elmo_list + [[self.char_lexicon['<pad>']]*self.max_char_len]*(max_len+2-len(char_elmo_list))
+
+        return word_elmo_list, char_elmo_list
+
+
+
+
+
+
+
+
+
