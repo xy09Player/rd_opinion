@@ -252,14 +252,6 @@ def shorten_p(df, sentence_num=2):
         shorten_passage.append(r)
         shorten_type.append(f)
 
-    type_1_num = (df['shorten_type'] == 1).sum()
-    type_2_num = (df['shorten_type'] == 2).sum()
-    type_3_num = (df['shorten_type'] == 3).sum()
-    total_len = len(df)
-
-    print('shorten type, type_1:%.4f, type_2:%.4f, type_3:%.4f, type_3+:%.4f' %
-          (type_1_num/total_len, type_2_num/total_len, type_3_num/total_len, 1-(type_1_num+type_2_num+type_3_num)/total_len))
-
     passage_len = []
     for s in passages:
         s_list = utils.split_word(s)
@@ -281,6 +273,14 @@ def shorten_p(df, sentence_num=2):
 
     df['passage'] = shorten_passage
     df['shorten_type'] = shorten_type
+
+    type_1_num = (df['shorten_type'] == 1).sum()
+    type_2_num = (df['shorten_type'] == 2).sum()
+    type_3_num = (df['shorten_type'] == 3).sum()
+    total_len = len(df)
+
+    print('shorten type, type_1:%.4f, type_2:%.4f, type_3:%.4f, type_3+:%.4f' %
+          (type_1_num/total_len, type_2_num/total_len, type_3_num/total_len, 1-(type_1_num+type_2_num+type_3_num)/total_len))
 
     return df
 
@@ -442,8 +442,8 @@ def gen_train_val_datafile():
         df = organize_data(config.train_data)
         df = deal_data(df)
         df = zheng_fu_li(df, is_test=False)
-        df = shorten_p(df, sentence_num=config.shorten_sentence_num)
         df = jieduan(df)
+        df = shorten_p(df, sentence_num=config.shorten_sentence_num)
         df = df[df['zf_flag']]
         df = df[df['jieduan_flag']]
         df.to_csv(config.train_df, index=False)
@@ -456,6 +456,7 @@ def gen_train_val_datafile():
         df = deal_data(df)
         df = zheng_fu_li(df, is_test=False)
         df = shorten_p(df, sentence_num=config.shorten_sentence_num)
+        df = shorten_passage(df)
         df = df[df['zf_flag']]
         df.to_csv(config.val_df, index=False)
         print('gen val data, size:%d, time:%d' % (len(df), time.time()-time0))
@@ -469,6 +470,7 @@ def gen_test_datafile():
         df = deal_data(df)
         df = zheng_fu_li(df, is_test=True)
         df = shorten_p(df, sentence_num=config.shorten_sentence_num)
+        df = shorten_passage(df)
         df.to_csv(config.test_df, index=False)
         print('gen test data, size:%d, time:%d' % (len(df), time.time()-time0))
 
