@@ -443,7 +443,7 @@ def gen_train_val_datafile():
         df = deal_data(df)
         df = zheng_fu_li(df, is_test=False)
         df = jieduan(df)
-        df = shorten_p(df, sentence_num=config.shorten_sentence_num)
+        # df = shorten_p(df, sentence_num=config.shorten_sentence_num)
         df = df[df['zf_flag']]
         df = df[df['jieduan_flag']]
         df.to_csv(config.train_df, index=False)
@@ -455,7 +455,7 @@ def gen_train_val_datafile():
         df = organize_data(config.val_data)
         df = deal_data(df)
         df = zheng_fu_li(df, is_test=False)
-        df = shorten_p(df, sentence_num=config.shorten_sentence_num)
+        # df = shorten_p(df, sentence_num=config.shorten_sentence_num)
         df = shorten_passage(df)
         df = df[df['zf_flag']]
         df.to_csv(config.val_df, index=False)
@@ -469,7 +469,7 @@ def gen_test_datafile():
         df = organize_data(config.test_data)
         df = deal_data(df)
         df = zheng_fu_li(df, is_test=True)
-        df = shorten_p(df, sentence_num=config.shorten_sentence_num)
+        # df = shorten_p(df, sentence_num=config.shorten_sentence_num)
         df = shorten_passage(df)
         df.to_csv(config.test_df, index=False)
         print('gen test data, size:%d, time:%d' % (len(df), time.time()-time0))
