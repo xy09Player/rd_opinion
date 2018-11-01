@@ -179,7 +179,7 @@ def train():
                     flag = True
                 elif grade_1 and (train_c % (config.val_every*78) == 0):
                     flag = True
-                elif grade_2 and (train_c % (config.val_every*16) == 0):
+                elif grade_2 and (train_c % (config.val_every*8) == 0):
                     flag = True
 
             if flag:

@@ -192,9 +192,98 @@ def jieduan(df):
     return df
 
 
+# 缩短passage
+def shorten_p(df, sentence_num=2):
+    sys.setrecursionlimit(1000000)
+    rouge = Rouge(metrics=['rouge-l'])
 
+    def shorten(passage, query):
+        p_list = passage.split('。')
+        q_list = utils.split_word(query)
+        query = ' '.join(q_list)
 
+        # 计算rouge-l匹配分数
+        scores = []
+        for pp in p_list:
+            pp = utils.split_word(pp)
+            pp = ' '.join(pp)
+            if pp.strip() == '' or len(pp.strip()) == 1:
+                scores.append(0)
+                continue
+            try:
+                score = rouge.get_scores(pp, query, avg=True)['rouge-l']['r']
+            except:
+                print('pp', pp)
+                print('qq', query)
+            scores.append(score)
 
+        # 确定核心句
+        flag = np.zeros(len(p_list))
+        max_score = max(scores)
+        for i in range(len(p_list)):
+            if scores[i] == max_score:
+                flag[i] = 1
+
+        # 确定结果
+        flag_type = np.sum(flag)
+        result = []
+        for i in range(len(p_list)):
+            if flag[i] == 1:
+                index_start = max(i-sentence_num, 0)
+                index_end = i + sentence_num
+                result = result + p_list[index_start: index_end+1]
+
+        # 删除重复结果
+        result_tmp = []
+        for r in result:
+            if r not in result_tmp:
+                result_tmp.append(r)
+
+        result = '。'.join(result_tmp)
+
+        return result, flag_type
+
+    passages = df['passage'].values
+    querys = df['query'].values
+    shorten_passage = []
+    shorten_type = []
+    for p, q in zip(passages, querys):
+        r, f = shorten(p, q)
+        shorten_passage.append(r)
+        shorten_type.append(f)
+
+    df['shorten_p'] = shorten_passage
+    df['shorten_type'] = shorten_type
+
+    type_1_num = (df['shorten_type'] == 1).sum()
+    type_2_num = (df['shorten_type'] == 2).sum()
+    type_3_num = (df['shorten_type'] == 3).sum()
+    total_len = len(df)
+
+    print('shorten type, type_1:%.4f, type_2:%.4f, type_3:%.4f, type_3+:%.4f' %
+          (type_1_num/total_len, type_2_num/total_len, type_3_num/total_len, 1-(type_1_num+type_2_num+type_3_num)/total_len))
+
+    passage_len = []
+    for s in passages:
+        s_list = utils.split_word(s)
+        passage_len.append(len(s_list))
+    df['p_len'] = passage_len
+    max_len = max(passage_len)
+    min_len = min(passage_len)
+    avg_len = np.mean(passage_len)
+    print('passage len, max:%d, min:%d, avg:%.2f' % (max_len, min_len, avg_len))
+
+    shorten_passage_len = []
+    for s in shorten_passage:
+        s_list = utils.split_word(s)
+        shorten_passage_len.append(len(s_list))
+    df['shorten_p_len'] = shorten_passage_len
+    max_len = max(shorten_passage_len)
+    min_len = min(shorten_passage_len)
+    avg_len = np.mean(shorten_passage_len)
+    print('shorten passage len, max:%d, min:%d, avg:%.2f' % (max_len, min_len, avg_len))
+
+    return df
 
 
 # 对于测试集， 对长度超过500的passage进行处理

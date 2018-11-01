@@ -9,7 +9,6 @@ from data_pre.langconv import Converter
 def deal_data(data):
     result = []
     for i in data:
-        i = re.sub(r'\u3000', '', i)
         i = re.sub(r'\s+', ' ', i)
 
         # 全角数字 -> 半角数字
