@@ -192,6 +192,11 @@ def jieduan(df):
     return df
 
 
+
+
+
+
+
 # 对于测试集， 对长度超过500的passage进行处理
 def shorten_passage(df, max_len=500):
 

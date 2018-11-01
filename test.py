@@ -10,6 +10,7 @@ from torch import nn
 from data_pre import wfqd
 import loader
 import numpy as np
+import build_dataset
 import utils
 import preprocess_data
 from config import config_base
@@ -39,12 +40,17 @@ def test():
 
     # load data
     if config.is_true_test is False:
-        if os.path.isfile(config.val_pkl):
-            with open(config.val_pkl, 'rb') as file:
+        if os.path.isfile(config.val_true_pkl):
+            with open(config.val_true_pkl, 'rb') as file:
                 test_data = pickle.load(file)
         else:
-            test_data = loader.load_data(config.val_df, config.train_vocab_path, config.tag_path)
-            with open(config.val_pkl, 'wb') as file:
+            test_data = build_dataset.CustomDataset(
+                df_file=config.val_df,
+                vocab_path=config.train_vocab_path,
+                tag_path=config.tag_path,
+                is_test=True
+            )
+            with open(config.val_true_pkl, 'wb') as file:
                 pickle.dump(test_data, file)
 
     else:
@@ -52,13 +58,18 @@ def test():
             with open(config.test_pkl, 'rb') as file:
                 test_data = pickle.load(file)
         else:
-            test_data = loader.load_data(config.test_df, config.test_vocab_path, config.tag_path)
+            test_data = build_dataset.CustomDataset(
+                df_file=config.test_df,
+                vocab_path=config.test_vocab_path,
+                tag_path=config.tag_path,
+                is_test=True
+            )
             with open(config.test_pkl, 'wb') as file:
                 pickle.dump(test_data, file)
 
     # build test dataloader
     test_loader = loader.build_loader(
-        dataset=test_data[:9],
+        dataset=test_data,
         batch_size=config.test_batch_size,
         shuffle=False,
         drop_last=False

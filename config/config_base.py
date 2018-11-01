@@ -13,6 +13,7 @@ class ConfigBase:
 
     train_pkl = 'data_gen/train_df.pkl'
     val_pkl = 'data_gen/val_df.pkl'
+    val_true_pkl = 'data_gen/val_true_df.pkl'
     test_pkl = 'data_gen/test_df.pkl'
 
     train_vocab_path = 'data_gen/train_vocab.pkl'

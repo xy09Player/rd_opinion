@@ -14,7 +14,8 @@ from data_pre import wfqd
 
 class CustomDataset(data.Dataset):
 
-    def __init__(self, df_file, vocab_path, tag_path, p_max_len=500, q_max_len=30, a_max_len=5):
+    def __init__(self, df_file, vocab_path, tag_path, p_max_len=500, q_max_len=30, a_max_len=5, is_test=False):
+        self.is_test = is_test
         # load
         df = pd.read_csv(df_file)
         passages = df['passage'].values.tolist()
@@ -189,7 +190,7 @@ class CustomDataset(data.Dataset):
         # batch_q_elmo_word_index = torch.LongTensor(batch_q_elmo_word_index)
         # batch_q_elmo_char_index = torch.LongTensor(batch_q_elmo_char_index)
 
-        if self.answer_index is not None:
+        if self.is_test is False:
             return p_word_list, p_tag_list, p_in, q_word_list, q_tag_list, q_in, \
                    zhengli_word_list, fuli_word_list, wfqd_word_list, answer
 

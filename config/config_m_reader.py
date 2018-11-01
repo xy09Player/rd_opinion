@@ -22,6 +22,6 @@ class Config(config_base.ConfigBase):
 
     # 测试
     model_test = 'm_reader_1'
-    is_true_test = False
+    is_true_test = True
 
 config = Config()
