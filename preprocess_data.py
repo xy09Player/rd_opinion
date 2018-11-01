@@ -252,9 +252,6 @@ def shorten_p(df, sentence_num=2):
         shorten_passage.append(r)
         shorten_type.append(f)
 
-    df['shorten_p'] = shorten_passage
-    df['shorten_type'] = shorten_type
-
     type_1_num = (df['shorten_type'] == 1).sum()
     type_2_num = (df['shorten_type'] == 2).sum()
     type_3_num = (df['shorten_type'] == 3).sum()
@@ -267,7 +264,6 @@ def shorten_p(df, sentence_num=2):
     for s in passages:
         s_list = utils.split_word(s)
         passage_len.append(len(s_list))
-    df['p_len'] = passage_len
     max_len = max(passage_len)
     min_len = min(passage_len)
     avg_len = np.mean(passage_len)
@@ -282,6 +278,9 @@ def shorten_p(df, sentence_num=2):
     min_len = min(shorten_passage_len)
     avg_len = np.mean(shorten_passage_len)
     print('shorten passage len, max:%d, min:%d, avg:%.2f' % (max_len, min_len, avg_len))
+
+    df['passage'] = shorten_passage
+    df['shorten_type'] = shorten_type
 
     return df
 
@@ -443,6 +442,7 @@ def gen_train_val_datafile():
         df = organize_data(config.train_data)
         df = deal_data(df)
         df = zheng_fu_li(df, is_test=False)
+        df = shorten_p(df, sentence_num=config.shorten_sentence_num)
         df = jieduan(df)
         df = df[df['zf_flag']]
         df = df[df['jieduan_flag']]
@@ -455,7 +455,7 @@ def gen_train_val_datafile():
         df = organize_data(config.val_data)
         df = deal_data(df)
         df = zheng_fu_li(df, is_test=False)
-        df = shorten_passage(df)
+        df = shorten_p(df, sentence_num=config.shorten_sentence_num)
         df = df[df['zf_flag']]
         df.to_csv(config.val_df, index=False)
         print('gen val data, size:%d, time:%d' % (len(df), time.time()-time0))
@@ -468,7 +468,7 @@ def gen_test_datafile():
         df = organize_data(config.test_data)
         df = deal_data(df)
         df = zheng_fu_li(df, is_test=True)
-        df = shorten_passage(df)
+        df = shorten_p(df, sentence_num=config.shorten_sentence_num)
         df.to_csv(config.test_df, index=False)
         print('gen test data, size:%d, time:%d' % (len(df), time.time()-time0))
 

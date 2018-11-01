@@ -27,6 +27,8 @@ class ConfigBase:
 
     submission = 'submission/result.txt'
 
+    shorten_sentence_num = 2
+
     batch_size = 32
     test_batch_size = 64
     mode = 'LSTM'
