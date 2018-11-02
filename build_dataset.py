@@ -190,6 +190,7 @@ class CustomDataset(data.Dataset):
         return index_list
 
     def __gen_elmo__(self, word_list, max_len):
+        word_list = word_list[: max_len]
         word_list = ['<bos>'] + list(word_list) + ['<eos>']
 
         word_elmo_list = [self.word_lexicon.get(word, self.word_lexicon['<oov>']) for word in word_list]

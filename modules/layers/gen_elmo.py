@@ -31,7 +31,7 @@ class Model(nn.Module):
   def forward(self, word_inp, chars_package, mask):
     token_embedding = self.token_embedder(word_inp, chars_package, (mask.size(0), mask.size(1)))
     if self.config['encoder']['name'] == 'elmo':
-      mask = Variable(mask).cuda() if self.use_cuda else Variable(mask)
+      # mask = Variable(mask).cuda() if self.use_cuda else Variable(mask)
       encoder_output = self.encoder(token_embedding, mask)
       sz = encoder_output.size()
       token_embedding = torch.cat([token_embedding, token_embedding], dim=2).view(1, sz[1], sz[2], sz[3])
