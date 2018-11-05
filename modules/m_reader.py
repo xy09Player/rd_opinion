@@ -29,12 +29,12 @@ class Model(nn.Module):
         # embedding
         self.embedding = embedding.ExtendEmbedding(param['embedding'])
 
-        # elmo 融合比例控制
-        self.s1 = nn.Parameter(torch.Tensor([1, 1, 1]))
-        self.r1 = nn.Parameter(torch.Tensor([0.3]))
+        # # elmo 融合比例控制
+        # self.s1 = nn.Parameter(torch.Tensor([1, 1, 1]))
+        # self.r1 = nn.Parameter(torch.Tensor([0.3]))
 
         # encoder
-        input_size = self.embedding.embedding_dim + 1024
+        input_size = self.embedding.embedding_dim
         self.encoder_pq = encoder.Rnn(
             mode=self.mode,
             input_size=input_size,
@@ -42,10 +42,10 @@ class Model(nn.Module):
             dropout_p=self.encoder_dropout_p,
             bidirectional=True,
             layer_num=self.encoder_layer_num,
-            is_bn=False
+            is_bn=False   # 是否需要改
         )
 
-        input_size = input_size - 9
+        # input_size = input_size - 9
         self.encoder_a = encoder.Rnn(
             mode=self.mode,
             input_size=input_size,
@@ -94,7 +94,7 @@ class Model(nn.Module):
             if isinstance(module, nn.Linear):
                 nn.init.xavier_uniform_(module.weight, 0.1)
 
-    def forward(self, batch, elmo):
+    def forward(self, batch):
         """
         :param batch: (p_index, q_index, zhengli_index, fuli_index, wfqd_index)
         :return:
@@ -102,16 +102,16 @@ class Model(nn.Module):
 
         passage = batch[0: 3]
         query = batch[3: 6]
-        zhengli = batch[6]  # (batch_size, zhengli_len)
-        fuli = batch[7]
-        wfqd = batch[8]
+        zhengli = batch[6: 9]  # (batch_size, zhengli_len)
+        fuli = batch[9: 12]
+        wfqd = batch[12: 15]
 
         # mask
         passage_mask = utils.get_mask(passage[0])
         query_mask = utils.get_mask(query[0])
-        zhengli_mask = utils.get_mask(zhengli)
-        fuli_mask = utils.get_mask(fuli)
-        wfqd_mask = utils.get_mask(wfqd)
+        zhengli_mask = utils.get_mask(zhengli[0])
+        fuli_mask = utils.get_mask(fuli[0])
+        wfqd_mask = utils.get_mask(wfqd[0])
 
         # embedding
         passage_vec = self.embedding(passage)
@@ -121,29 +121,31 @@ class Model(nn.Module):
         wfqd_vec = self.embedding(wfqd)
 
         # elmo
-        p_elmo, q_elmo, zhengli_elmo, fuli_elmo, wfqd_elmo = elmo
-        s1 = f.softmax(self.s1, dim=0)
+        # p_elmo, q_elmo, zhengli_elmo, fuli_elmo, wfqd_elmo = elmo
+        # s1 = f.softmax(self.s1, dim=0)
+        #
+        # p_elmo = self.r1*(s1[0]*p_elmo[0] + s1[1]*p_elmo[1] + s1[2]*p_elmo[2]).transpose(0, 1)  # (c_len, batch_size, 1024)
+        # passage_vec = torch.cat([passage_vec, p_elmo], dim=2)  # (c_len, batch_size, w2v+1024)
+        #
+        # q_elmo = self.r1*(s1[0]*q_elmo[0] + s1[1]*q_elmo[1] + s1[2]*q_elmo[2]).transpose(0, 1)
+        # query_vec = torch.cat([query_vec, q_elmo], dim=2)
+        #
+        # zhengli_elmo = self.r1*(s1[0]*zhengli_elmo[0] + s1[1]*zhengli_elmo[1] + s1[2]*zhengli_elmo[2]).transpose(0, 1)
+        # zhengli_vec = torch.cat([zhengli_vec, zhengli_elmo], dim=2)
+        #
+        # fuli_elmo = self.r1*(s1[0]*fuli_elmo[0] + s1[1]*fuli_elmo[1] + s1[2]*fuli_elmo[2]).transpose(0, 1)
+        # fuli_vec = torch.cat([fuli_vec, fuli_elmo], dim=2)
+        #
+        # wfqd_elmo = self.r1*(s1[0]*wfqd_elmo[0] + s1[1]*wfqd_elmo[1] + s1[2]*wfqd_elmo[2]).transpose(0, 1)
+        # wfqd_vec = torch.cat([wfqd_vec, wfqd_elmo], dim=2)
 
-        p_elmo = self.r1*(s1[0]*p_elmo[0] + s1[1]*p_elmo[1] + s1[2]*p_elmo[2]).transpose(0, 1)  # (c_len, batch_size, 1024)
-        passage_vec = torch.cat([passage_vec, p_elmo], dim=2)  # (c_len, batch_size, w2v+1024)
-
-        q_elmo = self.r1*(s1[0]*q_elmo[0] + s1[1]*q_elmo[1] + s1[2]*q_elmo[2]).transpose(0, 1)
-        query_vec = torch.cat([query_vec, q_elmo], dim=2)
-
-        zhengli_elmo = self.r1*(s1[0]*zhengli_elmo[0] + s1[1]*zhengli_elmo[1] + s1[2]*zhengli_elmo[2]).transpose(0, 1)
-        zhengli_vec = torch.cat([zhengli_vec, zhengli_elmo], dim=2)
-
-        fuli_elmo = self.r1*(s1[0]*fuli_elmo[0] + s1[1]*fuli_elmo[1] + s1[2]*fuli_elmo[2]).transpose(0, 1)
-        fuli_vec = torch.cat([fuli_vec, fuli_elmo], dim=2)
-
-        wfqd_elmo = self.r1*(s1[0]*wfqd_elmo[0] + s1[1]*wfqd_elmo[1] + s1[2]*wfqd_elmo[2]).transpose(0, 1)
-        wfqd_vec = torch.cat([wfqd_vec, wfqd_elmo], dim=2)
-
-        # encoder
+        # encoder: p, q
         passage_vec = self.encoder_pq(passage_vec, passage_mask)  # (p_len, batch_size. hidden_size*2)
         passage_vec = self.dropout(passage_vec)
         query_vec = self.encoder_pq(query_vec, query_mask)
         query_vec = self.dropout(query_vec)
+
+        # encoder: zhengli,fuli,wfqd
         zhengli_vec = self.encoder_a(zhengli_vec, zhengli_mask)
         zhengli_vec = self.dropout(zhengli_vec)
         fuli_vec = self.encoder_a(fuli_vec, fuli_mask)
@@ -155,7 +157,8 @@ class Model(nn.Module):
         zhengli_vec = self.mean_a(zhengli_vec, zhengli_mask)  # (batch_size, hidden_size*2)
         fuli_vec = self.mean_a(fuli_vec, fuli_mask)
         wfqd_vec = self.mean_a(wfqd_vec, wfqd_mask)
-        answer = torch.stack([zhengli_vec, fuli_vec, wfqd_vec]).transpose(0, 1)  # (batch_size, 3, hidden_size*2)
+
+        answer = torch.stack([zhengli_vec, fuli_vec, wfqd_vec]).transpose(0, 1)  # (batch_size, 3, hidden_size)
 
         # merge q into p, get p prep
         align_ct = passage_vec
@@ -177,7 +180,7 @@ class Model(nn.Module):
         p_prep = torch.bmm(sj, p_prep.transpose(0, 1)).squeeze(1)  # (batch_size, hidden_size*2)
 
         # choosing
-        p_prep = self.bi_linear(p_prep)  # (batch_size, hidden_size*2)
+        p_prep = self.bi_linear(p_prep)  # (batch_size, hidden_size)
         outputs = torch.bmm(answer, p_prep.unsqueeze(2)).squeeze(2)  # (batch_size, 3)
 
         return outputs

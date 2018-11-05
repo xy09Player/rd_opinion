@@ -45,9 +45,13 @@ class CustomDataset(data.Dataset):
         self.p_word_list, self.p_tag_list, self.p_in, self.q_word_list, self.q_tag_list, self.q_in = \
             utils.deal_data(passages, querys)
 
-        self.zhengli_index = [utils.split_word(zhengli) for zhengli in zhenglis]
-        self.fuli_index = [utils.split_word(fuli) for fuli in fulis]
-        self.wfqd_index = [utils.split_word(www) for www in wfqds]
+        self.zhengli_index, self.zhengli_tag, self.zhengli_in = utils.deal_answer(zhenglis, passages)
+        self.fuli_index, self.fuli_tag, self.fuli_in = utils.deal_answer(fulis, passages)
+        self.wfqd_index, self.wfqd_tag, self.wfqd_in = utils.deal_answer(wfqds, passages)
+
+        # self.zhengli_index = [utils.split_word(zhengli) for zhengli in zhenglis]
+        # self.fuli_index = [utils.split_word(fuli) for fuli in fulis]
+        # self.wfqd_index = [utils.split_word(www) for www in wfqds]
 
         # vocab
         with open(vocab_path, 'rb') as file:
@@ -94,13 +98,28 @@ class CustomDataset(data.Dataset):
         p_word_list = self.p_word_list[item]
         p_tag_list = self.p_tag_list[item]
         p_in = self.p_in[item]
+        assert len(p_word_list) == len(p_tag_list) == len(p_in)
+
         q_word_list = self.q_word_list[item]
         q_tag_list = self.q_tag_list[item]
         q_in = self.q_in[item]
+        assert len(q_word_list) == len(q_tag_list) == len(q_in)
 
         zhengli_word_list = self.zhengli_index[item]
+        zhengli_tag_list = self.zhengli_tag[item]
+        zhengli_in = self.zhengli_in[item]
+        assert len(zhengli_word_list) == len(zhengli_tag_list) == len(zhengli_in)
+
         fuli_word_list = self.fuli_index[item]
+        fuli_tag_list = self.fuli_tag[item]
+        fuli_in = self.fuli_in[item]
+        assert len(fuli_word_list) == len(fuli_tag_list) == len(fuli_in)
+
         wfqd_word_list = self.wfqd_index[item]
+        wfqd_tag_list = self.wfqd_tag[item]
+        wfqd_in = self.wfqd_in[item]
+        assert len(wfqd_word_list) == len(wfqd_tag_list) == len(wfqd_in)
+
         if self.answer_index is not None:
             answer = self.answer_index[item]
 
@@ -113,28 +132,52 @@ class CustomDataset(data.Dataset):
 
         p_tag_list = [self.lang.get(tag, self.lang['<unk>']) for tag in p_tag_list]
         q_tag_list = [self.lang.get(tag, self.lang['<unk>']) for tag in q_tag_list]
+        zhengli_tag_list = [self.lang.get(tag, self.lang['<unk>']) for tag in zhengli_tag_list]
+        fuli_tag_list = [self.lang.get(tag, self.lang['<unk>']) for tag in fuli_tag_list]
+        wfqd_tag_list = [self.lang.get(tag, self.lang['<unk>']) for tag in wfqd_tag_list]
 
         # padding
         p_word_list = self.__pad__(p_word_list, self.p_max_len, self.w2i['<pad>'])
         p_tag_list = self.__pad__(p_tag_list, self.p_max_len, self.lang['<pad>'])
         p_in = self.__pad__(p_in, self.p_max_len, 0)
+
         q_word_list = self.__pad__(q_word_list, self.q_max_len, self.w2i['<pad>'])
         q_tag_list = self.__pad__(q_tag_list, self.q_max_len, self.lang['<pad>'])
         q_in = self.__pad__(q_in, self.q_max_len, 0)
+
         zhengli_word_list = self.__pad__(zhengli_word_list, self.a_max_len, self.w2i['<pad>'])
+        zhengli_tag_list = self.__pad__(zhengli_tag_list, self.a_max_len, self.lang['<pad>'])
+        zhengli_in = self.__pad__(zhengli_in, self.a_max_len, 0)
+
         fuli_word_list = self.__pad__(fuli_word_list, self.a_max_len, self.w2i['<pad>'])
+        fuli_tag_list = self.__pad__(fuli_tag_list, self.a_max_len, self.lang['<pad>'])
+        fuli_in = self.__pad__(fuli_in, self.a_max_len, 0)
+
         wfqd_word_list = self.__pad__(wfqd_word_list, self.a_max_len, self.w2i['<pad>'])
+        wfqd_tag_list = self.__pad__(wfqd_tag_list, self.a_max_len, self.lang['<pad>'])
+        wfqd_in = self.__pad__(wfqd_in, self.a_max_len, 0)
 
         # tensor
         p_word_list = torch.LongTensor(p_word_list)
         p_tag_list = torch.LongTensor(p_tag_list)
         p_in = torch.LongTensor(p_in)
+
         q_word_list = torch.LongTensor(q_word_list)
         q_tag_list = torch.LongTensor(q_tag_list)
         q_in = torch.LongTensor(q_in)
+
         zhengli_word_list = torch.LongTensor(zhengli_word_list)
+        zhengli_tag_list = torch.LongTensor(zhengli_tag_list)
+        zhengli_in = torch.LongTensor(zhengli_in)
+
         fuli_word_list = torch.LongTensor(fuli_word_list)
+        fuli_tag_list = torch.LongTensor(fuli_tag_list)
+        fuli_in = torch.LongTensor(fuli_in)
+
         wfqd_word_list = torch.LongTensor(wfqd_word_list)
+        wfqd_tag_list = torch.LongTensor(wfqd_tag_list)
+        wfqd_in = torch.LongTensor(wfqd_in)
+
         if self.answer_index is not None:
             answer = torch.LongTensor([answer])
 
@@ -168,14 +211,20 @@ class CustomDataset(data.Dataset):
         wfqd_char_elmo = torch.LongTensor(wfqd_char_elmo)
 
         if self.is_test is False:
-            return p_word_list, p_tag_list, p_in, q_word_list, q_tag_list, q_in, \
-                   zhengli_word_list, fuli_word_list, wfqd_word_list, \
+            return p_word_list, p_tag_list, p_in, \
+                   q_word_list, q_tag_list, q_in, \
+                   zhengli_word_list, zhengli_tag_list, zhengli_in, \
+                   fuli_word_list, fuli_tag_list, fuli_in, \
+                   wfqd_word_list, wfqd_tag_list, wfqd_in, \
                    p_word_elmo, p_char_elmo, q_word_elmo, q_char_elmo, zhengli_word_elmo, zhengli_char_elmo, \
                    fuli_word_elmo, fuli_char_elmo, wfqd_word_elmo, wfqd_char_elmo, answer
 
         else:
-            return p_word_list, p_tag_list, p_in, q_word_list, q_tag_list, q_in, \
-                   zhengli_word_list, fuli_word_list, wfqd_word_list, \
+            return p_word_list, p_tag_list, p_in, \
+                   q_word_list, q_tag_list, q_in, \
+                   zhengli_word_list, zhengli_tag_list, zhengli_in, \
+                   fuli_word_list, fuli_tag_list, fuli_in, \
+                   wfqd_word_list, wfqd_tag_list, wfqd_in, \
                    p_word_elmo, p_char_elmo, q_word_elmo, q_char_elmo, zhengli_word_elmo, zhengli_char_elmo, \
                    fuli_word_elmo, fuli_char_elmo, wfqd_word_elmo, wfqd_char_elmo
 

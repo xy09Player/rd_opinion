@@ -205,3 +205,32 @@ def deal_data(querys, passages):
         ppp_in.append(flag_p)
 
     return qqq_index, qqq_tag, qqq_in, ppp_index, ppp_tag, ppp_in
+
+
+def deal_answer(answers, passages):
+    """
+     index, tag, is_in_question
+    :return:
+    """
+    aaa_index = []
+    aaa_tag = []
+    aaa_in = []
+
+    for a, p in zip(answers, passages):
+        a_list, a_tag = split_word(a, have_tag=True)
+        p_list = split_word(p, have_tag=False)
+
+        flag_a = []
+        for aa in a_list:
+            if aa in p_list:
+                flag_a.append(1)
+            else:
+                flag_a.append(0)
+
+        assert len(a_list) == len(a_tag) == len(flag_a)
+
+        aaa_index.append(a_list)
+        aaa_tag.append(a_tag)
+        aaa_in.append(flag_a)
+
+    return aaa_index, aaa_tag, aaa_in

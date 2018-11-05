@@ -168,43 +168,44 @@ def train():
             # cuda
             batch = utils.deal_batch(batch)
 
-            p_word_elmo, p_char_elmo = batch[9: 11]
-            q_word_elmo, q_char_elmo = batch[11: 13]
-            zhengli_word_elmo, zhengli_char_elmo = batch[13: 15]
-            fuli_word_elmo, fuli_char_elmo = batch[15: 17]
-            wfqd_word_elmo, wfqd_char_elmo = batch[17: 19]
-
-            # gen elmo
-            with torch.no_grad():
-                p_elmo = []
-                for jj in range(2):
-                    p_word_elmo_tmp = p_word_elmo[jj*16: (jj+1)*16]
-                    p_char_elmo_tmp = p_char_elmo[jj*16: (jj+1)*16]
-                    p_mask_tmp = p_word_elmo_tmp.ne(3).long()
-                    p_elmo_tmp = elmo_model(p_word_elmo_tmp, p_char_elmo_tmp, p_mask_tmp)[:, :, 1: -1, :]
-                    p_elmo.append(p_elmo_tmp)
-                p_elmo = torch.cat(p_elmo, dim=1)
-
-                # p_mask = p_word_elmo.ne(3).long()
-                # p_elmo = elmo_model(p_word_elmo, p_char_elmo, p_mask)[:, :, 1: -1, :]
-
-                q_mask = q_word_elmo.ne(3).long()
-                q_elmo = elmo_model(q_word_elmo, q_char_elmo, q_mask)[:, :, 1: -1, :]
-
-                zhengli_mask = zhengli_word_elmo.ne(3).long()
-                zhengli_elmo = elmo_model(zhengli_word_elmo, zhengli_char_elmo, zhengli_mask)[:, :, 1: -1, :]
-
-                fuli_mask = fuli_word_elmo.ne(3).long()
-                fuli_elmo = elmo_model(fuli_word_elmo, fuli_char_elmo, fuli_mask)[:, :, 1: -1, :]
-
-                wfqd_mask = wfqd_word_elmo.ne(3).long()
-                wfqd_elmo = elmo_model(wfqd_word_elmo, wfqd_char_elmo, wfqd_mask)[:, :, 1: -1, :]
-
-                elmo = [p_elmo, q_elmo, zhengli_elmo, fuli_elmo, wfqd_elmo]
+            # p_word_elmo, p_char_elmo = batch[9: 11]
+            # q_word_elmo, q_char_elmo = batch[11: 13]
+            # zhengli_word_elmo, zhengli_char_elmo = batch[13: 15]
+            # fuli_word_elmo, fuli_char_elmo = batch[15: 17]
+            # wfqd_word_elmo, wfqd_char_elmo = batch[17: 19]
+            #
+            # # gen elmo
+            # with torch.no_grad():
+            #     p_elmo = []
+            #     for jj in range(2):
+            #         p_word_elmo_tmp = p_word_elmo[jj*16: (jj+1)*16]
+            #         p_char_elmo_tmp = p_char_elmo[jj*16: (jj+1)*16]
+            #         p_mask_tmp = p_word_elmo_tmp.ne(3).long()
+            #         p_elmo_tmp = elmo_model(p_word_elmo_tmp, p_char_elmo_tmp, p_mask_tmp)[:, :, 1: -1, :]
+            #         p_elmo.append(p_elmo_tmp)
+            #     p_elmo = torch.cat(p_elmo, dim=1)
+            #
+            #     # p_mask = p_word_elmo.ne(3).long()
+            #     # p_elmo = elmo_model(p_word_elmo, p_char_elmo, p_mask)[:, :, 1: -1, :]
+            #
+            #     q_mask = q_word_elmo.ne(3).long()
+            #     q_elmo = elmo_model(q_word_elmo, q_char_elmo, q_mask)[:, :, 1: -1, :]
+            #
+            #     zhengli_mask = zhengli_word_elmo.ne(3).long()
+            #     zhengli_elmo = elmo_model(zhengli_word_elmo, zhengli_char_elmo, zhengli_mask)[:, :, 1: -1, :]
+            #
+            #     fuli_mask = fuli_word_elmo.ne(3).long()
+            #     fuli_elmo = elmo_model(fuli_word_elmo, fuli_char_elmo, fuli_mask)[:, :, 1: -1, :]
+            #
+            #     wfqd_mask = wfqd_word_elmo.ne(3).long()
+            #     wfqd_elmo = elmo_model(wfqd_word_elmo, wfqd_char_elmo, wfqd_mask)[:, :, 1: -1, :]
+            #
+            #     elmo = [p_elmo, q_elmo, zhengli_elmo, fuli_elmo, wfqd_elmo]
 
             model.train()
             optimizer.zero_grad()
-            outputs = model(batch[: 9], elmo)
+            # outputs = model(batch[: 9], elmo)
+            outputs = model(batch)
             loss_value = criterion(outputs, batch[-1].view(-1))
             loss_value.backward()
 
@@ -241,41 +242,42 @@ def train():
                         # cut, cuda
                         val_batch = utils.deal_batch(val_batch)
 
-                        p_word_elmo, p_char_elmo = val_batch[9: 11]
-                        q_word_elmo, q_char_elmo = val_batch[11: 13]
-                        zhengli_word_elmo, zhengli_char_elmo = val_batch[13: 15]
-                        fuli_word_elmo, fuli_char_elmo = val_batch[15: 17]
-                        wfqd_word_elmo, wfqd_char_elmo = val_batch[17: 19]
+                        # p_word_elmo, p_char_elmo = val_batch[9: 11]
+                        # q_word_elmo, q_char_elmo = val_batch[11: 13]
+                        # zhengli_word_elmo, zhengli_char_elmo = val_batch[13: 15]
+                        # fuli_word_elmo, fuli_char_elmo = val_batch[15: 17]
+                        # wfqd_word_elmo, wfqd_char_elmo = val_batch[17: 19]
+                        #
+                        # # gen elmo
+                        # with torch.no_grad():
+                        #     p_elmo = []
+                        #     for jj in range(2):
+                        #         p_word_elmo_tmp = p_word_elmo[jj*16: (jj+1)*16]
+                        #         p_char_elmo_tmp = p_char_elmo[jj*16: (jj+1)*16]
+                        #         p_mask_tmp = p_word_elmo_tmp.ne(3).long()
+                        #         p_elmo_tmp = elmo_model(p_word_elmo_tmp, p_char_elmo_tmp, p_mask_tmp)[:, :, 1: -1, :]
+                        #         p_elmo.append(p_elmo_tmp)
+                        #     p_elmo = torch.cat(p_elmo, dim=1)
+                        #
+                        #     # p_mask = p_word_elmo.ne(3).long()
+                        #     # p_elmo = elmo_model(p_word_elmo, p_char_elmo, p_mask)[:, :, 1: -1, :]
+                        #
+                        #     q_mask = q_word_elmo.ne(3).long()
+                        #     q_elmo = elmo_model(q_word_elmo, q_char_elmo, q_mask)[:, :, 1: -1, :]
+                        #
+                        #     zhengli_mask = zhengli_word_elmo.ne(3).long()
+                        #     zhengli_elmo = elmo_model(zhengli_word_elmo, zhengli_char_elmo, zhengli_mask)[:, :, 1: -1, :]
+                        #
+                        #     fuli_mask = fuli_word_elmo.ne(3).long()
+                        #     fuli_elmo = elmo_model(fuli_word_elmo, fuli_char_elmo, fuli_mask)[:, :, 1: -1, :]
+                        #
+                        #     wfqd_mask = wfqd_word_elmo.ne(3).long()
+                        #     wfqd_elmo = elmo_model(wfqd_word_elmo, wfqd_char_elmo, wfqd_mask)[:, :, 1: -1, :]
+                        #
+                        #     elmo = [p_elmo, q_elmo, zhengli_elmo, fuli_elmo, wfqd_elmo]
 
-                        # gen elmo
-                        with torch.no_grad():
-                            p_elmo = []
-                            for jj in range(2):
-                                p_word_elmo_tmp = p_word_elmo[jj*16: (jj+1)*16]
-                                p_char_elmo_tmp = p_char_elmo[jj*16: (jj+1)*16]
-                                p_mask_tmp = p_word_elmo_tmp.ne(3).long()
-                                p_elmo_tmp = elmo_model(p_word_elmo_tmp, p_char_elmo_tmp, p_mask_tmp)[:, :, 1: -1, :]
-                                p_elmo.append(p_elmo_tmp)
-                            p_elmo = torch.cat(p_elmo, dim=1)
-
-                            # p_mask = p_word_elmo.ne(3).long()
-                            # p_elmo = elmo_model(p_word_elmo, p_char_elmo, p_mask)[:, :, 1: -1, :]
-
-                            q_mask = q_word_elmo.ne(3).long()
-                            q_elmo = elmo_model(q_word_elmo, q_char_elmo, q_mask)[:, :, 1: -1, :]
-
-                            zhengli_mask = zhengli_word_elmo.ne(3).long()
-                            zhengli_elmo = elmo_model(zhengli_word_elmo, zhengli_char_elmo, zhengli_mask)[:, :, 1: -1, :]
-
-                            fuli_mask = fuli_word_elmo.ne(3).long()
-                            fuli_elmo = elmo_model(fuli_word_elmo, fuli_char_elmo, fuli_mask)[:, :, 1: -1, :]
-
-                            wfqd_mask = wfqd_word_elmo.ne(3).long()
-                            wfqd_elmo = elmo_model(wfqd_word_elmo, wfqd_char_elmo, wfqd_mask)[:, :, 1: -1, :]
-
-                            elmo = [p_elmo, q_elmo, zhengli_elmo, fuli_elmo, wfqd_elmo]
-
-                        outputs = model(val_batch, elmo)
+                        # outputs = model(val_batch, elmo)
+                        outputs = model(val_batch)
 
                         loss_value = criterion(outputs, val_batch[-1].view(-1))
                         _, k = torch.max(outputs, dim=1)

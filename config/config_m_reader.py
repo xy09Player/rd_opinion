@@ -12,7 +12,7 @@ class Config(config_base.ConfigBase):
     epoch = 10
     mode = 'LSTM'
     batch_size = 32
-    hidden_size = 100
+    hidden_size = 200
     encoder_layer_num = 1
     dropout_p = 0.2
     val_every = 100
