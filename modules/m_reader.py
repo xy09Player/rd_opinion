@@ -35,25 +35,14 @@ class Model(nn.Module):
 
         # encoder
         input_size = self.embedding.embedding_dim
-        self.encoder_pq = encoder.Rnn(
+        self.encoder = encoder.Rnn(
             mode=self.mode,
             input_size=input_size,
             hidden_size=self.hidden_size,
             dropout_p=self.encoder_dropout_p,
             bidirectional=True,
             layer_num=self.encoder_layer_num,
-            is_bn=False   # 是否需要改
-        )
-
-        # input_size = input_size - 9
-        self.encoder_a = encoder.Rnn(
-            mode=self.mode,
-            input_size=input_size,
-            hidden_size=self.hidden_size,
-            dropout_p=self.encoder_dropout_p,
-            bidirectional=True,
-            layer_num=1,
-            is_bn=False
+            is_bn=self.is_bn
         )
 
         self.mean_q = pointer.AttentionPooling(self.hidden_size*2, self.hidden_size)
@@ -140,17 +129,17 @@ class Model(nn.Module):
         # wfqd_vec = torch.cat([wfqd_vec, wfqd_elmo], dim=2)
 
         # encoder: p, q
-        passage_vec = self.encoder_pq(passage_vec, passage_mask)  # (p_len, batch_size. hidden_size*2)
+        passage_vec = self.encoder(passage_vec, passage_mask)  # (p_len, batch_size. hidden_size*2)
         passage_vec = self.dropout(passage_vec)
-        query_vec = self.encoder_pq(query_vec, query_mask)
+        query_vec = self.encoder(query_vec, query_mask)
         query_vec = self.dropout(query_vec)
 
         # encoder: zhengli,fuli,wfqd
-        zhengli_vec = self.encoder_a(zhengli_vec, zhengli_mask)
+        zhengli_vec = self.encoder(zhengli_vec, zhengli_mask)
         zhengli_vec = self.dropout(zhengli_vec)
-        fuli_vec = self.encoder_a(fuli_vec, fuli_mask)
+        fuli_vec = self.encoder(fuli_vec, fuli_mask)
         fuli_vec = self.dropout(fuli_vec)
-        wfqd_vec = self.encoder_a(wfqd_vec, wfqd_mask)
+        wfqd_vec = self.encoder(wfqd_vec, wfqd_mask)
         wfqd_vec = self.dropout(wfqd_vec)
 
         # answer build

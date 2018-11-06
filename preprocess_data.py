@@ -20,15 +20,24 @@ config = config_base.config
 
 # convert .json to .pandas
 # return: df
-def organize_data(file_path):
+def organize_data(file_path, is_start=True):
     data = []
-    with open(file_path, 'r', encoding='utf-8') as file:
-        for sentence in file.readlines():
-            d = json.loads(sentence)
-            tmp = [d['query_id'], d['query'], d['passage'], d['alternatives']]
-            if 'answer' in d:
-                tmp.append(d['answer'])
-            data.append(tmp)
+    if is_start:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            for sentence in file.readlines():
+                d = json.loads(sentence)
+                tmp = [d['query_id'], d['query'], d['passage'], d['alternatives']]
+                if 'answer' in d:
+                    tmp.append(d['answer'])
+                data.append(tmp)
+    else:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            result = json.load(file)
+
+        for r in result:
+            if r['flag']:
+                tmp = [r['query_id'], r['query'], r['passage'], r['alternatives'], r['answer']]
+                data.append(tmp)
 
     if len(data[0]) == 4:
         columns = ['query_id', 'query', 'passage', 'alternatives']
@@ -396,6 +405,10 @@ def gen_pre_file_for_train():
 
         # 组织数据 json->df
         train_df = organize_data(config.train_data)
+        train_df_1 = organize_data(config.train_data_1, is_start=False)
+        train_df_2 = organize_data(config.train_data_2, is_start=False)
+        train_df = pd.concat([train_df, train_df_1, train_df_2], axis=0)
+
         val_df = organize_data(config.val_data)
 
         # 预处理数据
@@ -439,7 +452,12 @@ def gen_train_val_datafile():
     if os.path.isfile(config.train_df) is False:
         print('gen train data...')
         time0 = time.time()
-        df = organize_data(config.train_data)
+
+        df_1 = organize_data(config.train_data)
+        df_2 = organize_data(config.train_data_1, is_start=False)
+        df_3 = organize_data(config.train_data_2, is_start=False)
+        df = pd.concat([df_1, df_2, df_3], axis=0)
+
         df = deal_data(df)
         df = zheng_fu_li(df, is_test=False)
         df = jieduan(df)

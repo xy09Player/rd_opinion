@@ -4,6 +4,8 @@
 
 class ConfigBase:
     train_data = 'data/train/train.json'
+    train_data_1 = 'data/train/train_baidu.json'
+    train_data_2 = 'data/train/train_xiaoniu.json'
     val_data = 'data/val/val.json'
     test_data = 'data/test/test.json'
 

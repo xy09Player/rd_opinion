@@ -53,6 +53,7 @@ def xiaoniu_translate(content, fromLang, toLang, apikey='42403ddf41072fd9771dddc
         dst = str(js["tgt_text"])  # 取得翻译后的文本结果
         return dst.strip(), 0
     except Exception as e:
+        # print(len(content))
         return 'xxx', 1
 
 
@@ -128,8 +129,9 @@ class BaiFanyi():
 
 
 if __name__ == '__main__':
-    content = '孩子是父母的一面镜子，由于儿童的世界观尚未形成，他们的模仿带有很大的盲目性，所以还是父母带好。除非万不得已，绝对不能把上早教课等教育问题交给保姆，她们负责生活起居就好了，树立孩子一生的良好习惯，家长们可千万不能大意。'
-    print(youdao_translate(content, 'zh', 'en'))
+    content = '国际及地区航班1、乘坐从中国境内机场始发的国际'
+    # content = 'International and regional flights 1, departing from airports in China'
+    print(xiaoniu_translate(content, 'zh', 'en', 'a78bf9cbdbd4d2d1c5b152382d963a7c'))
 
 
 
