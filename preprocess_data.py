@@ -454,9 +454,10 @@ def gen_train_val_datafile():
         time0 = time.time()
 
         df_1 = organize_data(config.train_data)
-        df_2 = organize_data(config.train_data_1, is_start=False)
-        df_3 = organize_data(config.train_data_2, is_start=False)
-        df = pd.concat([df_1, df_2, df_3], axis=0)
+        # df_2 = organize_data(config.train_data_1, is_start=False)
+        # df_3 = organize_data(config.train_data_2, is_start=False)
+        # df = pd.concat([df_1, df_2, df_3], axis=0)
+        df = df_1
 
         df = deal_data(df)
         df = zheng_fu_li(df, is_test=False)
