@@ -108,7 +108,7 @@ def train():
 
     # optimizer
     optimizer_param = filter(lambda p: p.requires_grad, model.parameters())
-    optimizer = optim.Adam(optimizer_param, lr=config.lr, weight_decay=1e-5)
+    optimizer = optim.Adam(optimizer_param, lr=config.lr, weight_decay=config.weight_decay)
 
     # load model param, optimizer param, train param
     model_path = os.path.join('model', config.model_save)
@@ -153,6 +153,8 @@ def train():
     cc = 0
     grade_1 = False
     grade_2 = False
+    grade_num1 = train_data.__len__() / config.batch_size
+    grade_num2 = grade_num1 / 20
 
     for e in epoch_list:
         for i, batch in enumerate(train_loader):
@@ -176,9 +178,9 @@ def train():
                 if (train_c % (config.val_every//2) == 0) and (cc <= 0):
                     cc += 1
                     flag = True
-                elif grade_1 and (train_c % (config.val_every*78) == 0):
+                elif grade_1 and (train_c % grade_num1 == 0):
                     flag = True
-                elif grade_2 and (train_c % config.val_every == 0):
+                elif grade_2 and (train_c % grade_num2 == 0):
                     flag = True
 
             if flag:

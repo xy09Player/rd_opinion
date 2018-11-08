@@ -8,6 +8,7 @@ class Config(config_base.ConfigBase):
     model_name = 'm_reader'
     model_save = model_name + '_1'
     lr = 1e-4
+    weight_decay = 1e-5
     is_bn = True
     epoch = 10
     mode = 'LSTM'
