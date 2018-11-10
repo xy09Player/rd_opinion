@@ -13,8 +13,8 @@ class Config(config_base.ConfigBase):
     m_reader_5 = 'm_reader_5'  # 0.7558
     m_reader_6 = 'm_reader_6'  # 0.7519
 
-    model_lst = [m_reader_1, m_reader_2, m_reader_3, m_reader_4, m_reader_5, m_reader_6]
-    model_weight = [0.7506, 0.753, 0.7513, 0.7524, 0.7558, 0.7519]
+    model_lst = [m_reader_2, m_reader_3, m_reader_4, m_reader_5, m_reader_6]
+    model_weight = [0.753, 0.7513, 0.7524, 0.7558, 0.7519]
 
     # model_weight = utils.softmax(model_weight)
     model_weight = utils.mean(model_weight)
