@@ -8,7 +8,7 @@ class Config(config_base.ConfigBase):
     model_name = 'm_reader'
     model_save = model_name + '_1'
     lr = 1e-4
-    weight_decay = 1e-5
+    weight_decay = 0
     is_bn = True
     epoch = 10
     mode = 'LSTM'
@@ -22,7 +22,7 @@ class Config(config_base.ConfigBase):
     num_align_hops = 2
 
     # 测试
-    model_test = 'm_reader_1'
+    model_test = 'm_reader_6'
     is_true_test = False
 
 config = Config()

@@ -153,8 +153,8 @@ def train():
     cc = 0
     grade_1 = False
     grade_2 = False
-    grade_num1 = train_data.__len__() / config.batch_size
-    grade_num2 = grade_num1 / 20
+    grade_num1 = train_data.__len__() // config.batch_size
+    grade_num2 = grade_num1 // 20
 
     for e in epoch_list:
         for i, batch in enumerate(train_loader):

@@ -38,7 +38,7 @@ class Model(nn.Module):
             dropout_p=self.encoder_dropout_p,
             bidirectional=True,
             layer_num=self.encoder_layer_num,
-            is_bn=self.is_bn
+            is_bn=self.is_bn  # 应该修改一下
         )
 
         self.mean_q = pointer.AttentionPooling(self.hidden_size*2, self.hidden_size)
