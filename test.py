@@ -2,6 +2,7 @@
 # author = xy
 
 import os
+import sys
 import time
 import pickle
 import pandas as pd
@@ -15,16 +16,13 @@ import utils
 import preprocess_data
 from config import config_base
 from config import config_m_reader
+from config import config_m_reader_plus
 from config import config_ensemble
 
 from modules import m_reader
 
 
-# config = config_m_reader.config
-config = config_ensemble.config
-
-
-def test():
+def test(config):
     time0 = time.time()
 
     # prepare
@@ -218,7 +216,7 @@ def test():
     print('time:%d' % (time.time()-time0))
 
 
-def test_ensemble():
+def test_ensemble(config):
     time0 = time.time()
 
     if config.is_true_test:
@@ -226,10 +224,83 @@ def test_ensemble():
     else:
         df = pd.read_csv(config.val_df)
 
-    # 加权求和
+    # 投票
+    model_lst = config.model_lst
+    result_toupiaos = []
+    for ml in model_lst:
+        result_path = os.path.join('result/ans_range', ml)
+        ans_range = torch.load(result_path)
+        ans_range = np.array(ans_range)
+        result_tmp = np.argmax(ans_range, axis=1)
+        result_toupiaos.append(result_tmp)
+
+    # 概率修正
+    # ans_dis = 'data_gen/ans_dis.pkl'
+    # with open(ans_dis, 'rb') as file:
+    #     ans_dis = pickle.load(file)
+    #
+    # zhenglis = df['zhengli'].values
+    # fulis = df['fuli'].values
+    # alts = df['alternatives'].values
+    # wfqd_list = wfqd.wfqd_list
+    # ans_dis_1 = {}
+    # num = 0
+    # for i in range(len(df)):
+    #     flag = True
+    #     value = result_toupiaos[0][i]
+    #     for j in range(len(model_lst)):
+    #         if result_toupiaos[j][i] != value:
+    #             flag = False
+    #             break
+    #     if flag:
+    #         num += 1
+    #         alt_list = alts[i].split('|')
+    #         if value == 0:
+    #             word = zhenglis[i]
+    #         elif value == 1:
+    #             word = fulis[i]
+    #         else:
+    #             if alt_list[0].strip() in wfqd_list:
+    #                 word = alt_list[0].strip()
+    #             elif alt_list[1].strip() in wfqd_list:
+    #                 word = alt_list[1].strip()
+    #             else:
+    #                 word = alt_list[2].strip()
+    #
+    #         if word in ans_dis_1:
+    #             ans_dis_1[word] += 1
+    #         else:
+    #             ans_dis_1[word] = 1
+    # # 获取投票一致的word表
+    # ans_dis_1_tmp = {}
+    # for k, v in ans_dis_1.items():
+    #     ans_dis_1_tmp[k] = v/len(df)
+    # ans_dis_1 = ans_dis_1_tmp
+    #
+    # # 获取投票不一致的word表（先验）
+    # num_ratio = 1 - num / len(df)
+    # ans_dis_2_x = {}
+    # for k, v in ans_dis.items():
+    #     ans_dis_2_x[k] = v * num_ratio
+    #
+    # # 获取投票不一致的word（后验）
+    # ans_dis_2_h = {}
+    # for k, v in ans_dis.items():
+    #     if k in ans_dis_1:
+    #         ans_dis_2_h[k] = v - ans_dis_1[k]
+    #     else:
+    #         ans_dis_2_h[k] = v
+    #
+    # # 获取修正概率
+    # ans_dis_2 = {}
+    # for k, v in ans_dis_2_x.items():
+    #     if k in ans_dis_2_h:
+    #         ans_dis_2[k] = ans_dis_2_h[k] / v
+
+    # 加权求和： 待修改
     model_lst = config.model_lst
     model_weight = config.model_weight
-    range_ensemble = np.zeros([len(df), 3])
+    result_jiaquan = np.zeros([len(df), 3])
     for ml, mw in zip(model_lst, model_weight):
         result_path = os.path.join('result/ans_range', ml)
         ans_range = torch.load(result_path)
@@ -240,10 +311,32 @@ def test_ensemble():
         ans_range = exp_ans_range/sum_ans_range
 
         ans_range = ans_range * ans_range
-        range_ensemble += ans_range * mw
+        result_jiaquan += ans_range * mw
+    result_jiaquan = np.argmax(result_jiaquan, axis=1)
 
-    result = np.argmax(range_ensemble, axis=1)
-    result = result.tolist()
+    # 整合
+    result = []
+    r_flag = []
+    for i in range(len(result_jiaquan)):
+        flag = True
+        value = result_toupiaos[0][i]
+        for j in range(len(model_lst)):
+            if result_toupiaos[j][i] != value:
+                flag = False
+                break
+        if flag:
+            r_flag.append('toupiao')
+            result.append(value)
+        else:
+            # vec = result_jiaquan[i]
+            # vec[0] = vec[0] * ans_dis_2.get(zhenglis[i], 1)
+            # vec[1] = vec[1] * ans_dis_2.get(fulis[i], 1)
+            # vec[2] = vec[2] * ans_dis_2.get('无法确定', 1)
+            # r = np.argmax(vec, axis=0)
+            # r_flag.append('jiaquan')
+            # result.append(r)
+            r_flag.append('jiaquan')
+            result.append(result_jiaquan[i])
 
     # 生成结果
     zhenglis = df['zhengli'].values
@@ -300,13 +393,74 @@ def test_ensemble():
                 flag.append(False)
         print('accuracy:%.4f' % (sum(flag)/len(answers)))
 
+    # to .csv
+    if config.is_true_test is False:
+        df['answer_pred'] = tmp
+        df['r_flag'] = r_flag
+        df = df[['query_id', 'query', 'passage', 'alternatives', 'answer', 'answer_pred', 'r_flag']]
+        csv_path = os.path.join('result', 'emsemble'+'_val.csv')
+        df.to_csv(csv_path, index=False)
+
     print('time:%d' % (time.time()-time0))
 
 
 if __name__ == '__main__':
-    if config == config_ensemble.config:
+    is_ensemble = True
+    if is_ensemble:
+        time0 = time.time()
         print('ensemble...')
-        test_ensemble()
+        config = config_ensemble.config
+        is_true_test = config.is_true_test
+        if is_true_test:
+            flag = '_submission.pkl'
+        else:
+            flag = '_val.pkl'
+        model_lst = config.model_lst
+        print('model num:%d' % len(model_lst))
+
+        config_lst = [config_m_reader.config, config_m_reader_plus.config]
+
+        model_name = [
+            ['m_reader_1', 'm_reader_2', 'm_reader_3', 'm_reader_4', 'm_reader_5', 'm_reader_6'],
+            ['m_reader_plus_1']
+        ]
+
+        print('start single model...')
+        for i in range(len(config_lst)):
+            cfg = config_lst[i]
+            config = cfg
+            mdl_lst = model_name[i]
+            for mdl in mdl_lst:
+                config.is_true_test = is_true_test
+                config.test_batch_size = 64
+                config.model_test = mdl
+                if (mdl+flag) in model_lst and os.path.isfile(os.path.join('result/ans_range', mdl+flag)) is False:
+                    print('gen ', os.path.join('result/ans_range', mdl+flag))
+                    test(config)
+                elif (mdl+flag) in model_lst:
+                    print(os.path.join('result/ans_range', mdl+flag), ', exiting')
+        config = config_ensemble.config
+        test_ensemble(config)
+        print('ensemble time:%d' % (time.time()-time0))
     else:
-        print('single model...')
-        test()
+        print('single model....')
+        config = config_m_reader.config
+        test(config)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

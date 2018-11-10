@@ -7,7 +7,8 @@ class ConfigBase:
     train_data_1 = 'data/train/train_baidu.json'
     train_data_2 = 'data/train/train_xiaoniu.json'
     val_data = 'data/val/val.json'
-    test_data = 'data/test/test.json'
+    # test_data = 'data/test/test.json'
+    test_data = 'input/data'
 
     train_df = 'data_gen/train_df.csv'
     val_df = 'data_gen/val_df.csv'
@@ -27,7 +28,7 @@ class ConfigBase:
     train_embedding = 'data_gen/train_embedding'
     test_embedding = 'data_gen/test_embedding'
 
-    submission = 'submission/result.txt'
+    submission = 'output/result'
 
     shorten_sentence_num = 2
 
