@@ -277,7 +277,7 @@ def train():
                 else:
                     state = {}
 
-                if state == {} or state['best_loss'] > (val_loss/val_c):
+                if state == {} or (val_loss/val_c <= 0.61 and state['best_val_accuracy'] <= correct_num*1.0/sum_num):
                     state['best_model_state'] = model.state_dict()
                     state['best_opt_state'] = optimizer.state_dict()
                     state['best_loss'] = val_loss/val_c
