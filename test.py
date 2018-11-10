@@ -20,8 +20,8 @@ from config import config_ensemble
 from modules import m_reader
 
 
-config = config_m_reader.config
-# config = config_ensemble.config
+# config = config_m_reader.config
+config = config_ensemble.config
 
 
 def test():
@@ -234,24 +234,53 @@ def test_ensemble():
         result_path = os.path.join('result/ans_range', ml)
         ans_range = torch.load(result_path)
         ans_range = np.array(ans_range)
+
+        exp_ans_range = np.exp(ans_range)
+        sum_ans_range = np.sum(exp_ans_range, axis=1).reshape(len(exp_ans_range), -1)
+        ans_range = exp_ans_range/sum_ans_range
+
+        ans_range = ans_range * ans_range
         range_ensemble += ans_range * mw
 
     result = np.argmax(range_ensemble, axis=1)
     result = result.tolist()
 
     # 生成结果
+    zhenglis = df['zhengli'].values
+    fulis = df['fuli'].values
     alts = df['alternatives'].values
-    assert len(alts) == len(result)
+    wfqd_list = wfqd.wfqd_list
     tmp = []
-    for a, r in zip(alts, result):
-        # trick
-        if False:
-            print('trick')
-            continue
-
-        a_list = a.split('|')
-        a = a_list[r]
-        tmp.append(a)
+    for r, z, f, alt in zip(result, zhenglis, fulis, alts):
+        alt_list = alt.split('|')
+        if r == 0:
+            if z == alt_list[0].strip():
+                tmp.append(alt_list[0])
+            elif z == alt_list[1].strip():
+                tmp.append(alt_list[1])
+            elif z == alt_list[2].strip():
+                tmp.append(alt_list[2])
+            else:
+                print('r==0, meet wrong data')
+        elif r == 1:
+            if f == alt_list[0].strip():
+                tmp.append(alt_list[0])
+            elif f == alt_list[1].strip():
+                tmp.append(alt_list[1])
+            elif f == alt_list[2].strip():
+                tmp.append(alt_list[2])
+            else:
+                print('r==1, meet wrong data')
+        else:
+            if alt_list[0].strip() in wfqd_list:
+                tmp.append(alt_list[0])
+            elif alt_list[1].strip() in wfqd_list:
+                tmp.append(alt_list[1])
+            elif alt_list[2].strip() in wfqd_list:
+                tmp.append(alt_list[2])
+            else:
+                print('r==2, meet wfqd of not in wfqd')
+                tmp.append(alt_list[-1])
 
     # gen a submission
     if config.is_true_test:
@@ -270,13 +299,6 @@ def test_ensemble():
             else:
                 flag.append(False)
         print('accuracy:%.4f' % (sum(flag)/len(answers)))
-
-    # to .csv
-    if config.is_true_test is False:
-        df['answer_pred'] = tmp
-        df = df[['query_id', 'query', 'passage', 'alternatives', 'answer', 'answer_pred']]
-        csv_path = os.path.join('result', 'val(ensemble).csv')
-        df.to_csv(csv_path, index=False)
 
     print('time:%d' % (time.time()-time0))
 
