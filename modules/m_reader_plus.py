@@ -29,39 +29,18 @@ class Model(nn.Module):
 
         # encoder: p
         input_size = self.embedding.embedding_dim
-        self.encoder_p = encoder.Rnn(
+        self.encoder = encoder.Rnn(
             mode=self.mode,
             input_size=input_size,
             hidden_size=self.hidden_size,
             dropout_p=self.encoder_dropout_p,
             bidirectional=True,
             layer_num=self.encoder_layer_num,
-            is_bn=True
-        )
-        # encoder: q
-        self.encoder_q = encoder.Rnn(
-            mode=self.mode,
-            input_size=input_size,
-            hidden_size=self.hidden_size,
-            dropout_p=self.encoder_dropout_p,
-            bidirectional=True,
-            layer_num=self.encoder_layer_num,
-            is_bn=True
-        )
-        # encoder: a
-        input_size = self.embedding.embedding_dim - 9
-        self.encoder_a = encoder.Rnn(
-            mode=self.mode,
-            input_size=input_size,
-            hidden_size=self.hidden_size//2,
-            dropout_p=self.encoder_dropout_p,
-            bidirectional=True,
-            layer_num=self.encoder_layer_num,
-            is_bn=False
+            is_bn=self.is_bn
         )
 
-        # self-att: a
-        self.a_att = nn.Linear(self.hidden_size, 1, bias=False)
+        self.mean_q = pointer.AttentionPooling(self.hidden_size*2, self.hidden_size)
+        self.mean_a = pointer.AttentionPooling(self.hidden_size*2, self.hidden_size)
 
         # align
         input_size = self.hidden_size * 2
@@ -69,13 +48,11 @@ class Model(nn.Module):
         self.align_2 = Aligner(input_size, self.dropout_p, self.mode, self.is_bn, False)
         self.align_3 = Aligner(input_size, self.dropout_p, self.mode, self.is_bn, True)
 
-        # prediction
-        self.wq = nn.Linear(self.hidden_size*2, self.hidden_size, bias=False)
-        self.vq = nn.Linear(self.hidden_size, 1, bias=False)
-        self.wp1 = nn.Linear(self.hidden_size*2, self.hidden_size, bias=False)
-        self.wp2 = nn.Linear(self.hidden_size*2, self.hidden_size, bias=False)
-        self.vp = nn.Linear(self.hidden_size, 1, bias=False)
-        self.predict = nn.Linear(self.hidden_size*2, self.hidden_size, bias=False)
+        # p_rep, choosing
+        self.wp1 = nn.Linear(self.hidden_size*2, self.hidden_size)
+        self.wp2 = nn.Linear(self.hidden_size*2, self.hidden_size)
+        self.vp = nn.Linear(self.hidden_size, 1)
+        self.bi_linear = nn.Linear(self.hidden_size*2, self.hidden_size*2)
 
         self.dropout = nn.Dropout(self.dropout_p)
 
@@ -90,85 +67,61 @@ class Model(nn.Module):
 
         passage = batch[0: 3]
         query = batch[3: 6]
-        alter_1 = batch[6]  # (batch_size, a1_len)
-        alter_2 = batch[7]
-        alter_3 = batch[8]
+        zhengli = batch[6: 9]  # (batch_size, a1_len)
+        fuli = batch[9: 12]
+        wfqd = batch[12: 15]
 
         # mask
         passage_mask = utils.get_mask(passage[0])
         query_mask = utils.get_mask(query[0])
-        alter1_mask = utils.get_mask(alter_1)
-        alter2_mask = utils.get_mask(alter_2)
-        alter3_mask = utils.get_mask(alter_3)
+        zhengli_mask = utils.get_mask(zhengli[0])
+        fuli_mask = utils.get_mask(fuli[0])
+        wfqd_mask = utils.get_mask(wfqd[0])
 
         # embedding
         passage_vec = self.embedding(passage)
         query_vec = self.embedding(query)
-        alter1_vec = self.embedding(alter_1)  # (a1_len, batch_size, emb_size)
-        alter2_vec = self.embedding(alter_2)
-        alter3_vec = self.embedding(alter_3)
+        zhengli_vec = self.embedding(zhengli)
+        fuli_vec = self.embedding(fuli)
+        wfqd_vec = self.embedding(wfqd)
 
-        # encoder: a_1
-        alter1_vec = self.encoder_a(alter1_vec, alter1_mask)  # (a1_len, batch_size, hidden_size)
-        alter1_alpha = self.a_att(alter1_vec).transpose(0, 1)  # (batch_size, a1_len, 1)
-        mask_tmp = alter1_mask.eq(0).unsqueeze(2)
-        alter1_alpha.masked_fill_(mask_tmp, -float('inf'))
-        alter1_alpha = f.softmax(alter1_alpha, dim=1).transpose(1, 2)  # (batch_size, 1, a1_len)
-        alter1_vec = torch.bmm(alter1_alpha, alter1_vec.transpose(0, 1)).squeeze(1)  # (batch_size, hidden_size)
-
-        # encoder: a_2
-        alter2_vec = self.encoder_a(alter2_vec, alter2_mask)
-        alter2_alpha = self.a_att(alter2_vec).transpose(0, 1)
-        mask_tmp = alter2_mask.eq(0).unsqueeze(2)
-        alter2_alpha.masked_fill_(mask_tmp, -float('inf'))
-        alter2_alpha = f.softmax(alter2_alpha, dim=1).transpose(1, 2)
-        alter2_vec = torch.bmm(alter2_alpha, alter2_vec.transpose(0, 1)).squeeze(1)
-
-        # encoder: a_3
-        alter3_vec = self.encoder_a(alter3_vec, alter3_mask)
-        alter3_alpha = self.a_att(alter3_vec).transpose(0, 1)
-        mask_tmp = alter3_mask.eq(0).unsqueeze(2)
-        alter3_alpha.masked_fill_(mask_tmp, -float('inf'))
-        alter3_alpha = f.softmax(alter3_alpha, dim=1).transpose(1, 2)
-        alter3_vec = torch.bmm(alter3_alpha, alter3_vec.transpose(0, 1)).squeeze(1)
-
-        # encoder: p
-        passage_vec = self.encoder_p(passage_vec, passage_mask)  # (p_len, batch_size, hidden_size*2)
+        # encoder: p, q
+        passage_vec = self.encoder(passage_vec, passage_mask)  # (p_len, batch_size. hidden_size*2)
         passage_vec = self.dropout(passage_vec)
-
-        # encoder: q
-        query_vec = self.encoder_q(query_vec, query_mask)
+        query_vec = self.encoder(query_vec, query_mask)
         query_vec = self.dropout(query_vec)
+
+        # encoder: zhengli,fuli,wfqd
+        zhengli_vec = self.encoder(zhengli_vec, zhengli_mask)
+        zhengli_vec = self.dropout(zhengli_vec)
+        fuli_vec = self.encoder(fuli_vec, fuli_mask)
+        fuli_vec = self.dropout(fuli_vec)
+        wfqd_vec = self.encoder(wfqd_vec, wfqd_mask)
+        wfqd_vec = self.dropout(wfqd_vec)
+
+        # answer build
+        zhengli_vec = self.mean_a(zhengli_vec, zhengli_mask)  # (batch_size, hidden_size*2)
+        fuli_vec = self.mean_a(fuli_vec, fuli_mask)
+        wfqd_vec = self.mean_a(wfqd_vec, wfqd_mask)
+
+        answer = torch.stack([zhengli_vec, fuli_vec, wfqd_vec]).transpose(0, 1)  # (batch_size, 3, hidden_size)
 
         # attention: merge q into p
         R1, Z1, E1, B1 = self.align_1(passage_vec, passage_mask, query_vec, query_mask)
         R2, Z2, E2, B2 = self.align_2(R1, passage_mask, query_vec, query_mask, E1, B1)
         R3, _, _, _ = self.align_3(R2, passage_mask, query_vec, query_mask, E2, B2, Z1, Z2)
-        new_p_vec = R3
+        p_prep = R3
 
-        # 获取q的自注意力表示
-        sj = self.vq(torch.tanh(self.wq(query_vec))).transpose(0, 1)  # (batch_size, q_len, 1)
-        mask_tmp = query_mask.eq(0).unsqueeze(2)
-        sj.masked_fill_(mask_tmp, -float('inf'))
-        sj = f.softmax(sj, dim=1).transpose(1, 2)  # (batch_size, 1, q_len)
-        rq = torch.bmm(sj, query_vec.transpose(0, 1)).squeeze(1)  # (batch_size, hidden_size*2)
-        rq = rq.unsqueeze(0)  # (1, batch_size, hidden_size*2)
-
-        # 获取融合后p表示
-        sj = self.vp(torch.tanh(self.wp1(new_p_vec) + self.wp2(rq))).transpose(0, 1)  # (batch_size, p_len, 1)
-        mask_tmp = passage_mask.eq(0).unsqueeze(2)
-        sj.masked_fill_(mask_tmp, -float('inf'))
+        q_prep = self.mean_q(query_vec, query_mask).unsqueeze(0)  # (1, batch_size, hidden_size*2)
+        sj = self.vp(torch.tanh(self.wp1(p_prep) + self.wp2(q_prep))).transpose(0, 1)  # (batch_size, p_len, 1)
+        mask = passage_mask.eq(0).unsqueeze(2)
+        sj.masked_fill_(mask, -float('inf'))
         sj = f.softmax(sj, dim=1).transpose(1, 2)  # (batch_size, 1, p_len)
-        rp = torch.bmm(sj, new_p_vec.transpose(0, 1)).squeeze(1)  # (batch_size, hidden_size*10)
+        p_prep = torch.bmm(sj, p_prep.transpose(0, 1)).squeeze(1)  # (batch_size, hidden_size*2)
 
-        # match
-        rp = self.predict(rp)  # (batch_size, hidden_size)
-        rp = f.leaky_relu(rp)
-        rp = self.dropout(rp)
-        rp = rp.unsqueeze(2)  # (batch_size, hidden_size, 1)
-        alters = torch.stack([alter1_vec, alter2_vec, alter3_vec]).transpose(0, 1)  # (batch_size, 3, hidden_size)
-        outputs = torch.bmm(alters, rp).squeeze(2)  # (batch_size, 3)
-        outputs = f.softmax(outputs, dim=1)
+        # choosing
+        p_prep = self.bi_linear(p_prep)  # (batch_size, hidden_size)
+        outputs = torch.bmm(answer, p_prep.unsqueeze(2)).squeeze(2)  # (batch_size, 3)
 
         return outputs
 

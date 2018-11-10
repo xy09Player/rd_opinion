@@ -17,10 +17,13 @@ import build_dataset
 
 from config import config_base
 from config import config_m_reader
+from config import config_m_reader_plus
 
 from modules import m_reader
+from modules import m_reader_plus
 
-config = config_m_reader.config
+# config = config_m_reader.config
+config = config_m_reader_plus.config
 
 
 def train():
