@@ -146,41 +146,40 @@ def test(config):
         df = pd.read_csv(config.val_df, encoding='utf-8')
 
     # 生成结果
-    zhenglis = df['zhengli'].values
-    fulis = df['fuli'].values
+    a_items = df['a_item'].values
+    b_items = df['b_item'].values
+    c_items = df['c_item'].values
     alts = df['alternatives'].values
-    wfqd_list = wfqd.wfqd_list
     tmp = []
-    for r, z, f, alt in zip(result, zhenglis, fulis, alts):
+    for r, a, b, c, alt in zip(result, a_items, b_items, c_items, alts):
         alt_list = alt.split('|')
         if r == 0:
-            if z == alt_list[0].strip():
+            if a == alt_list[0].strip():
                 tmp.append(alt_list[0])
-            elif z == alt_list[1].strip():
+            elif a == alt_list[1].strip():
                 tmp.append(alt_list[1])
-            elif z == alt_list[2].strip():
+            elif a == alt_list[2].strip():
                 tmp.append(alt_list[2])
             else:
                 print('r==0, meet wrong data')
         elif r == 1:
-            if f == alt_list[0].strip():
+            if b == alt_list[0].strip():
                 tmp.append(alt_list[0])
-            elif f == alt_list[1].strip():
+            elif b == alt_list[1].strip():
                 tmp.append(alt_list[1])
-            elif f == alt_list[2].strip():
+            elif b == alt_list[2].strip():
                 tmp.append(alt_list[2])
             else:
                 print('r==1, meet wrong data')
         else:
-            if alt_list[0].strip() in wfqd_list:
+            if c == alt_list[0].strip():
                 tmp.append(alt_list[0])
-            elif alt_list[1].strip() in wfqd_list:
+            elif c == alt_list[1].strip():
                 tmp.append(alt_list[1])
-            elif alt_list[2].strip() in wfqd_list:
+            elif c == alt_list[2].strip():
                 tmp.append(alt_list[2])
             else:
-                print('r==2, meet wfqd of not in wfqd')
-                tmp.append(alt_list[-1])
+                print('r==2, meet wrong data')
 
     # gen a submission
     if config.is_true_test:
@@ -339,41 +338,40 @@ def test_ensemble(config):
             result.append(result_jiaquan[i])
 
     # 生成结果
-    zhenglis = df['zhengli'].values
-    fulis = df['fuli'].values
+    a_items = df['a_item'].values
+    b_items = df['b_item'].values
+    c_items = df['c_item'].values
     alts = df['alternatives'].values
-    wfqd_list = wfqd.wfqd_list
     tmp = []
-    for r, z, f, alt in zip(result, zhenglis, fulis, alts):
+    for r, a, b, c, alt in zip(result, a_items, b_items, c_items, alts):
         alt_list = alt.split('|')
         if r == 0:
-            if z == alt_list[0].strip():
+            if a == alt_list[0].strip():
                 tmp.append(alt_list[0])
-            elif z == alt_list[1].strip():
+            elif a == alt_list[1].strip():
                 tmp.append(alt_list[1])
-            elif z == alt_list[2].strip():
+            elif a == alt_list[2].strip():
                 tmp.append(alt_list[2])
             else:
                 print('r==0, meet wrong data')
         elif r == 1:
-            if f == alt_list[0].strip():
+            if b == alt_list[0].strip():
                 tmp.append(alt_list[0])
-            elif f == alt_list[1].strip():
+            elif b == alt_list[1].strip():
                 tmp.append(alt_list[1])
-            elif f == alt_list[2].strip():
+            elif b == alt_list[2].strip():
                 tmp.append(alt_list[2])
             else:
                 print('r==1, meet wrong data')
         else:
-            if alt_list[0].strip() in wfqd_list:
+            if c == alt_list[0].strip():
                 tmp.append(alt_list[0])
-            elif alt_list[1].strip() in wfqd_list:
+            elif c == alt_list[1].strip():
                 tmp.append(alt_list[1])
-            elif alt_list[2].strip() in wfqd_list:
+            elif c == alt_list[2].strip():
                 tmp.append(alt_list[2])
             else:
-                print('r==2, meet wfqd of not in wfqd')
-                tmp.append(alt_list[-1])
+                print('r==2, meet wrong data')
 
     # gen a submission
     if config.is_true_test:

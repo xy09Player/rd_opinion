@@ -17,23 +17,23 @@ class CustomDataset(data.Dataset):
         df = pd.read_csv(df_file)
         passages = df['passage'].values.tolist()
         querys = df['query'].values.tolist()
-        zhenglis = df['zhengli'].values.tolist()
-        fulis = df['fuli'].values.tolist()
-        wfqds = df['wfqd'].values.tolist()
-        wfqd_list = wfqd.wfqd_list
+        a_items = df['a_item'].values.tolist()
+        b_items = df['b_item'].values.tolist()
+        c_items = df['c_item'].values.tolist()
 
         if 'answer' in df:
             answers = df['answer'].values.tolist()
             answer_tmp = []
-            for answer, zhengli, fuli in zip(answers, zhenglis, fulis):
-                if answer.strip() == zhengli:
+            for answer, a_item, b_item, c_item in zip(answers, a_items, b_items, c_items):
+                if answer.strip() == a_item:
                     answer_tmp.append(0)
-                elif answer.strip() == fuli:
+                elif answer.strip() == b_item:
                     answer_tmp.append(1)
-                elif answer.strip() in wfqd_list:
+                elif answer.strip() in c_item:
                     answer_tmp.append(2)
                 else:
-                    print('build dataset, meet wrong data, answer:%s, zhengli:%s, fuli:%s' % (answer, zhengli, fuli))
+                    print('build dataset, meet wrong data, answer:%s, a_item:%s, b_item:%s, c_item:%s' %
+                          (answer, a_item, b_item, c_item))
             self.answer_index = answer_tmp
         else:
             self.answer_index = None
@@ -42,9 +42,9 @@ class CustomDataset(data.Dataset):
         self.p_word_list, self.p_tag_list, self.p_in, self.q_word_list, self.q_tag_list, self.q_in = \
             utils.deal_data(passages, querys)
 
-        self.zhengli_index, self.zhengli_tag, self.zhengli_in = utils.deal_answer(zhenglis, passages)
-        self.fuli_index, self.fuli_tag, self.fuli_in = utils.deal_answer(fulis, passages)
-        self.wfqd_index, self.wfqd_tag, self.wfqd_in = utils.deal_answer(wfqds, passages)
+        self.zhengli_index, self.zhengli_tag, self.zhengli_in = utils.deal_answer(a_items, passages)
+        self.fuli_index, self.fuli_tag, self.fuli_in = utils.deal_answer(b_items, passages)
+        self.wfqd_index, self.wfqd_tag, self.wfqd_in = utils.deal_answer(c_items, passages)
 
         # vocab
         with open(vocab_path, 'rb') as file:

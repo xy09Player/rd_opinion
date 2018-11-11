@@ -63,82 +63,59 @@ def deal_data(df):
     return df
 
 
-# 正例/负例 数据
-def zheng_fu_li(df, is_test=False):
-    wfqd_list = wfqd.wfqd_list
-    alts = df['alternatives'].values
-    alts = [alt.split('|') for alt in alts]
-    zhengli = []
-    fuli = []
+# 分离选项
+def split_alter(df, is_test=False):
+    alternatives = df['alternatives']
+    a_item = []
+    b_item = []
+    c_item = []
     flag = []
-    for alt_list in alts:
-        if is_test:
-            if len(alt_list) >= 2:
-                a_tmp_1 = alt_list[0].strip()
-                a_tmp_2 = alt_list[1].strip()
-            elif len(alt_list) == 1:
-                a_tmp_1 = alt_list[0].strip()
-                a_tmp_2 = alt_list[0].strip()
+    for alter in alternatives:
+        alter_list = alter.split('|')
+        alter_list = [a.strip() for a in alter_list]
+        if is_test is False:
+            alter_set = set(alter_list)
+            if len(alter_set) == 3 and '' not in alter_set:
+                flag.append(True)
+                a_item.append(alter_list[0])
+                b_item.append(alter_list[1])
+                c_item.append(alter_list[2])
             else:
-                print('zheng_fu_li method, meet wrong data')
-                a_tmp_1 = 'xxx'
-                a_tmp_2 = 'xxx'
-            if len(a_tmp_1) > len(a_tmp_2):
-                a_tmp_1, a_tmp_2 = a_tmp_2, a_tmp_1
+                flag.append(False)
+                a_item.append('xxxx')
+                b_item.append('xxxx')
+                c_item.append('xxxx')
+        else:
+            a = alter_list[0]
+            if a == '':
+                a = alter_list[1]
+            if a == '':
+                a = alter_list[2]
+            if a == '':
+                a = 'xxx'
 
-            if a_tmp_1 == '':
-                a_tmp_1 = a_tmp_2
+            if alter_list[0] == '':
+                a_item.append(a)
+            else:
+                a_item.append(alter_list[0])
 
-            zhengli.append(a_tmp_1)
-            fuli.append(a_tmp_2)
+            if alter_list[1] == '':
+                b_item.append(a)
+            else:
+                b_item.append(alter_list[1])
+
+            if alter_list[2] == '':
+                c_item.append(a)
+            else:
+                c_item.append(alter_list[2])
+
             flag.append(True)
 
-        else:
-            flag_tmp = False
-            for a in alt_list:
-                if a.strip() in wfqd_list:
-                    flag_tmp = True
-                    break
-            if flag_tmp is False:
-                zhengli.append('xxx')
-                fuli.append('xxx')
-                flag.append(False)
-            else:
-                if len(alt_list) == 3:
-                    if alt_list[0].strip() in wfqd_list:
-                        a_tmp_1 = alt_list[1].strip()
-                        a_tmp_2 = alt_list[2].strip()
-                    elif alt_list[1].strip() in wfqd_list:
-                        a_tmp_1 = alt_list[0].strip()
-                        a_tmp_2 = alt_list[2].strip()
-                    else:
-                        a_tmp_1 = alt_list[0].strip()
-                        a_tmp_2 = alt_list[1].strip()
+    df['a_item'] = a_item
+    df['b_item'] = b_item
+    df['c_item'] = c_item
+    df['alter_flag'] = flag
 
-                    if len(a_tmp_1) > len(a_tmp_2):
-                        a_tmp_1, a_tmp_2 = a_tmp_2, a_tmp_1
-
-                    if (a_tmp_1 in wfqd_list) or (a_tmp_2 in wfqd_list) or (a_tmp_1 == a_tmp_2) or (a_tmp_1 == '') or (a_tmp_2 == ''):
-                        zhengli.append('xxx')
-                        fuli.append('xxx')
-                        flag.append(False)
-                    else:
-                        zhengli.append(a_tmp_1)
-                        fuli.append(a_tmp_2)
-                        flag.append(True)
-                else:
-                    zhengli.append('xxx')
-                    fuli.append('xxx')
-                    flag.append(False)
-
-    assert len(zhengli) == len(fuli) == len(flag)
-    if is_test is False:
-        print('训练/验证集，正负例， 保留样本_num:%d/%d, ratio:%.4f' % (sum(flag), len(flag), sum(flag)/len(flag)))
-
-    df['zhengli'] = zhengli
-    df['fuli'] = fuli
-    df['zf_flag'] = flag
-    df['wfqd'] = '无法确定'
     return df
 
 
@@ -147,8 +124,9 @@ def zheng_fu_li(df, is_test=False):
 def jieduan(df):
     passages = df['passage'].values
     querys = df['query'].values
-    zhenglis = df['zhengli'].values
-    fulis = df['fuli'].values
+    a_item = df['a_item'].values
+    b_item = df['b_item'].values
+    c_item = df['c_item'].values
 
     # cut p
     flag_p = []
@@ -168,128 +146,44 @@ def jieduan(df):
         else:
             flag_q.append(True)
 
-    # cut zhengli
-    flag_z = []
-    for z in zhenglis:
-        z_list = utils.split_word(z.strip())
-        if len(z_list) > 5:
-            flag_z.append(False)
+    # cut a_item
+    flag_a = []
+    for a in a_item:
+        a_list = utils.split_word(a.strip())
+        if len(a_list) > 5:
+            flag_a.append(False)
         else:
-            flag_z.append(True)
+            flag_a.append(True)
 
-    # cut fuli
-    flag_f = []
-    for f in fulis:
-        f_list = utils.split_word(f.strip())
-        if len(f_list) > 5:
-            flag_f.append(False)
+    # cut b_item
+    flag_b = []
+    for b in b_item:
+        b_list = utils.split_word(b.strip())
+        if len(b_list) > 5:
+            flag_b.append(False)
         else:
-            flag_f.append(True)
+            flag_b.append(True)
 
-    assert len(flag_p) == len(flag_q) == len(flag_z) == len(flag_f)
+    # cut c_item
+    flag_c = []
+    for c in c_item:
+        c_list = utils.split_word(c.strip())
+        if len(c_list) > 5:
+            flag_c.append(False)
+        else:
+            flag_c.append(True)
+
+    assert len(flag_p) == len(flag_q) == len(flag_a) == len(flag_b) == len(flag_c)
 
     flag = []
-    for fp, fq, fz, ff in zip(flag_p, flag_q, flag_z, flag_f):
-        if fp and fq and fz and ff:
+    for fp, fq, fa, fb, fc in zip(flag_p, flag_q, flag_a, flag_b, flag_c):
+        if fp and fq and fa and fb and fc:
             flag.append(True)
         else:
             flag.append(False)
     print('训练/验证集， 长度截断，保留数据_num:%d/%d, ratio:%.4f' % (sum(flag), len(flag), sum(flag)/len(flag)))
 
     df['jieduan_flag'] = flag
-
-    return df
-
-
-# 缩短passage
-def shorten_p(df, sentence_num=2):
-    sys.setrecursionlimit(1000000)
-    rouge = Rouge(metrics=['rouge-l'])
-
-    def shorten(passage, query):
-        p_list = passage.split('。')
-        q_list = utils.split_word(query)
-        query = ' '.join(q_list)
-
-        # 计算rouge-l匹配分数
-        scores = []
-        for pp in p_list:
-            pp = utils.split_word(pp)
-            pp = ' '.join(pp)
-            if pp.strip() == '' or len(pp.strip()) == 1:
-                scores.append(0)
-                continue
-            try:
-                score = rouge.get_scores(pp, query, avg=True)['rouge-l']['r']
-            except:
-                print('pp', pp)
-                print('qq', query)
-            scores.append(score)
-
-        # 确定核心句
-        flag = np.zeros(len(p_list))
-        max_score = max(scores)
-        for i in range(len(p_list)):
-            if scores[i] == max_score:
-                flag[i] = 1
-
-        # 确定结果
-        flag_type = np.sum(flag)
-        result = []
-        for i in range(len(p_list)):
-            if flag[i] == 1:
-                index_start = max(i-sentence_num, 0)
-                index_end = i + sentence_num
-                result = result + p_list[index_start: index_end+1]
-
-        # 删除重复结果
-        result_tmp = []
-        for r in result:
-            if r not in result_tmp:
-                result_tmp.append(r)
-
-        result = '。'.join(result_tmp)
-
-        return result, flag_type
-
-    passages = df['passage'].values
-    querys = df['query'].values
-    shorten_passage = []
-    shorten_type = []
-    for p, q in zip(passages, querys):
-        r, f = shorten(p, q)
-        shorten_passage.append(r)
-        shorten_type.append(f)
-
-    passage_len = []
-    for s in passages:
-        s_list = utils.split_word(s)
-        passage_len.append(len(s_list))
-    max_len = max(passage_len)
-    min_len = min(passage_len)
-    avg_len = np.mean(passage_len)
-    print('passage len, max:%d, min:%d, avg:%.2f' % (max_len, min_len, avg_len))
-
-    shorten_passage_len = []
-    for s in shorten_passage:
-        s_list = utils.split_word(s)
-        shorten_passage_len.append(len(s_list))
-    df['shorten_p_len'] = shorten_passage_len
-    max_len = max(shorten_passage_len)
-    min_len = min(shorten_passage_len)
-    avg_len = np.mean(shorten_passage_len)
-    print('shorten passage len, max:%d, min:%d, avg:%.2f' % (max_len, min_len, avg_len))
-
-    df['passage'] = shorten_passage
-    df['shorten_type'] = shorten_type
-
-    type_1_num = (df['shorten_type'] == 1).sum()
-    type_2_num = (df['shorten_type'] == 2).sum()
-    type_3_num = (df['shorten_type'] == 3).sum()
-    total_len = len(df)
-
-    print('shorten type, type_1:%.4f, type_2:%.4f, type_3:%.4f, type_3+:%.4f' %
-          (type_1_num/total_len, type_2_num/total_len, type_3_num/total_len, 1-(type_1_num+type_2_num+type_3_num)/total_len))
 
     return df
 
@@ -454,16 +348,16 @@ def gen_train_val_datafile():
         time0 = time.time()
 
         df_1 = organize_data(config.train_data)
-        df_2 = organize_data(config.train_data_1, is_start=False)
+        # df_2 = organize_data(config.train_data_1, is_start=False)
         # df_3 = organize_data(config.train_data_2, is_start=False)
-        df = pd.concat([df_1, df_2], axis=0)
-        # df = df_1
+        # df = pd.concat([df_1, df_2], axis=0)
+        df = df_1
 
         df = deal_data(df)
-        df = zheng_fu_li(df, is_test=False)
+        # 分离选项
+        df = split_alter(df)
         df = jieduan(df)
-        # df = shorten_p(df, sentence_num=config.shorten_sentence_num)
-        df = df[df['zf_flag']]
+        df = df[df['alter_flag']]
         df = df[df['jieduan_flag']]
         df.to_csv(config.train_df, encoding='utf-8', index=False)
         print('gen train data, size:%d, time:%d' % (len(df), time.time()-time0))
@@ -473,10 +367,8 @@ def gen_train_val_datafile():
         time0 = time.time()
         df = organize_data(config.val_data)
         df = deal_data(df)
-        df = zheng_fu_li(df, is_test=False)
-        # df = shorten_p(df, sentence_num=config.shorten_sentence_num)
+        df = split_alter(df, is_test=True)
         df = shorten_passage(df)
-        df = df[df['zf_flag']]
         df.to_csv(config.val_df, encoding='utf-8', index=False)
         print('gen val data, size:%d, time:%d' % (len(df), time.time()-time0))
 
@@ -487,8 +379,7 @@ def gen_test_datafile():
         time0 = time.time()
         df = organize_data(config.test_data)
         df = deal_data(df)
-        df = zheng_fu_li(df, is_test=True)
-        # df = shorten_p(df, sentence_num=config.shorten_sentence_num)
+        df = split_alter(df, is_test=True)
         df = shorten_passage(df)
         df.to_csv(config.test_df, encoding='utf-8', index=False)
         print('gen test data, size:%d, time:%d' % (len(df), time.time()-time0))
