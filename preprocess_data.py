@@ -86,28 +86,60 @@ def split_alter(df, is_test=False):
                 b_item.append('xxxx')
                 c_item.append('xxxx')
         else:
-            a = alter_list[0]
-            if a == '':
-                a = alter_list[1]
-            if a == '':
-                a = alter_list[2]
-            if a == '':
-                a = 'xxx'
+            if len(alter_list) == 3:
+                a = alter_list[0]
+                if a == '':
+                    a = alter_list[1]
+                if a == '':
+                    a = alter_list[2]
+                if a == '':
+                    a = 'xxx'
 
-            if alter_list[0] == '':
-                a_item.append(a)
-            else:
-                a_item.append(alter_list[0])
+                if alter_list[0] == '':
+                    a_item.append(a)
+                else:
+                    a_item.append(alter_list[0])
 
-            if alter_list[1] == '':
-                b_item.append(a)
-            else:
-                b_item.append(alter_list[1])
+                if alter_list[1] == '':
+                    b_item.append(a)
+                else:
+                    b_item.append(alter_list[1])
 
-            if alter_list[2] == '':
-                c_item.append(a)
-            else:
-                c_item.append(alter_list[2])
+                if alter_list[2] == '':
+                    c_item.append(a)
+                else:
+                    c_item.append(alter_list[2])
+            elif len(alter_list) == 2:
+                a = alter_list[0]
+                if a == '':
+                    a = alter_list[1]
+                if a == '':
+                    a = 'xxx'
+
+                if alter_list[0] == '':
+                    a_item.append(a)
+                else:
+                    a_item.append(alter_list[0])
+
+                if alter_list[1] == '':
+                    b_item.append(a)
+                    c_item.append(a)
+                else:
+                    b_item.append(alter_list[1])
+                    c_item.append(alter_list[1])
+            elif len(alter_list) == 1:
+                a = alter_list[0]
+                if a == '':
+                    a = 'xxx'
+
+                if alter_list[0] == '':
+                    a_item.append(a)
+                    b_item.append(a)
+                    c_item.append(a)
+                else:
+                    a_item.append(alter_list[0])
+                    b_item.append(alter_list[0])
+                    c_item.append(alter_list[0])
 
             flag.append(True)
 

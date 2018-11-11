@@ -191,11 +191,7 @@ def train():
                 val_loss = 0
                 val_c = 0
                 correct_num = 0
-                correct_01_num = 0
-                correct_2_num = 0
                 sum_num = 0
-                sum_01_num = 0
-                sum_2_num = 0
                 with torch.no_grad():
                     model.eval()
                     for val_batch in val_loader:
@@ -210,16 +206,6 @@ def train():
                         correct_num += torch.sum(k == val_batch[-1].view(-1)).item()
                         sum_num += val_batch[-1].size(0)
 
-                        mask_01 = val_batch[-1].view(-1).eq(2)
-                        p_01 = val_batch[-1].view(-1).masked_fill(mask_01, 4)
-                        correct_01_num += torch.sum(k == p_01).item()
-                        sum_01_num += torch.sum(val_batch[-1].view(-1).ne(2)).item()
-
-                        mask_2 = val_batch[-1].view(-1).ne(2)
-                        p_02 = val_batch[-1].view(-1).masked_fill(mask_2, 5)
-                        correct_2_num += torch.sum(k == p_02).item()
-                        sum_2_num += torch.sum(val_batch[-1].view(-1).eq(2)).item()
-
                         val_loss += loss_value.item()
                         val_c += 1
 
@@ -228,10 +214,9 @@ def train():
                 steps.append(train_c)
                 val_accuracy.append(correct_num*1.0/sum_num)
 
-                print('training, epochs:%2d, steps:%5d, train_loss:%.4f, val_loss:%.4f, val_accuracy:%.4f, '
-                      'val_accuracy01:%.4f, val_accuracy2:%.4f, time:%4ds' %
+                print('training, epochs:%2d, steps:%5d, train_loss:%.4f, val_loss:%.4f, val_accuracy:%.4f, time:%4ds' %
                       (e, sum(steps), train_loss/train_c, val_loss/val_c, correct_num*1.0/sum_num,
-                       correct_01_num*1.0/sum_01_num, correct_2_num*1.0/sum_2_num, time.time()-time_start+time_use))
+                       time.time()-time_start+time_use))
 
                 if val_loss/val_c > 0.65:
                     grade_1 = True

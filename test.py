@@ -161,6 +161,7 @@ def test(config):
             elif a == alt_list[2].strip():
                 tmp.append(alt_list[2])
             else:
+                tmp.append('xxx')
                 print('r==0, meet wrong data')
         elif r == 1:
             if b == alt_list[0].strip():
@@ -170,6 +171,7 @@ def test(config):
             elif b == alt_list[2].strip():
                 tmp.append(alt_list[2])
             else:
+                tmp.append('xxx')
                 print('r==1, meet wrong data')
         else:
             if c == alt_list[0].strip():
@@ -179,6 +181,7 @@ def test(config):
             elif c == alt_list[2].strip():
                 tmp.append(alt_list[2])
             else:
+                tmp.append('xxx')
                 print('r==2, meet wrong data')
 
     # gen a submission
@@ -444,21 +447,3 @@ if __name__ == '__main__':
         print('single model....')
         config = config_m_reader.config
         test(config)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
