@@ -19,7 +19,7 @@ class Config(config_base.ConfigBase):
     # model_weight = utils.softmax(model_weight)
     model_weight = utils.mean(model_weight)
 
-    is_true_test = False
+    is_true_test = True
 
     if is_true_test:
         model_lst = [model + '_submission.pkl' for model in model_lst]
