@@ -465,7 +465,7 @@ def gen_train_val_datafile():
         # df = shorten_p(df, sentence_num=config.shorten_sentence_num)
         df = df[df['zf_flag']]
         df = df[df['jieduan_flag']]
-        df.to_csv(config.train_df, index=False)
+        df.to_csv(config.train_df, encoding='utf-8', index=False)
         print('gen train data, size:%d, time:%d' % (len(df), time.time()-time0))
 
     if os.path.isfile(config.val_df) is False:
@@ -477,7 +477,7 @@ def gen_train_val_datafile():
         # df = shorten_p(df, sentence_num=config.shorten_sentence_num)
         df = shorten_passage(df)
         df = df[df['zf_flag']]
-        df.to_csv(config.val_df, index=False)
+        df.to_csv(config.val_df, encoding='utf-8', index=False)
         print('gen val data, size:%d, time:%d' % (len(df), time.time()-time0))
 
 
@@ -490,7 +490,7 @@ def gen_test_datafile():
         df = zheng_fu_li(df, is_test=True)
         # df = shorten_p(df, sentence_num=config.shorten_sentence_num)
         df = shorten_passage(df)
-        df.to_csv(config.test_df, index=False)
+        df.to_csv(config.test_df, encoding='utf-8', index=False)
         print('gen test data, size:%d, time:%d' % (len(df), time.time()-time0))
 
 

@@ -141,9 +141,9 @@ def test(config):
                 print('processing: %d/%d' % (cc, cc_total))
 
     if config.is_true_test:
-        df = pd.read_csv(config.test_df)
+        df = pd.read_csv(config.test_df, encoding='utf-8')
     else:
-        df = pd.read_csv(config.val_df)
+        df = pd.read_csv(config.val_df, encoding='utf-8')
 
     # 生成结果
     zhenglis = df['zhengli'].values
@@ -220,9 +220,9 @@ def test_ensemble(config):
     time0 = time.time()
 
     if config.is_true_test:
-        df = pd.read_csv(config.test_df)
+        df = pd.read_csv(config.test_df, encoding='utf-8')
     else:
-        df = pd.read_csv(config.val_df)
+        df = pd.read_csv(config.val_df, encoding='utf-8')
 
     # 投票
     model_lst = config.model_lst
