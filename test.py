@@ -422,7 +422,7 @@ if __name__ == '__main__':
         config_lst = [config_m_reader.config, config_m_reader_plus.config]
 
         model_name = [
-            ['m_reader_1', 'm_reader_2', 'm_reader_3', 'm_reader_4', 'm_reader_5', 'm_reader_6'],
+            ['m_reader_1', 'm_reader_2', 'm_reader_3', 'm_reader_4', 'm_reader_5', 'm_reader_6', 'm_reader_9'],
             ['m_reader_plus_1']
         ]
 

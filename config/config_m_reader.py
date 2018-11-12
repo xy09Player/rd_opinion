@@ -22,7 +22,7 @@ class Config(config_base.ConfigBase):
     num_align_hops = 2
 
     # 测试
-    model_test = 'm_reader_1'
+    model_test = 'm_reader_9'
     is_true_test = False
 
 config = Config()
