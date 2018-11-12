@@ -17,10 +17,13 @@ class Config(config_base.ConfigBase):
     model_lst = [m_reader_2, m_reader_4, m_reader_5, m_reader_6, m_reader_9]
     model_weight = [0.7531, 0.7525, 0.756, 0.752, 0.755]
 
+    # model_lst = [m_reader_2, m_reader_5, m_reader_9]
+    # model_weight = [0.753, 0.756, 0.755]
+
     # model_weight = utils.softmax(model_weight)
     model_weight = utils.mean(model_weight)
 
-    is_true_test = False
+    is_true_test = True
 
     if is_true_test:
         model_lst = [model + '_submission.pkl' for model in model_lst]

@@ -254,66 +254,65 @@ def test_ensemble(config):
     result_jiaquan = np.argmax(result_jiaquan, axis=1)
 
     # 整合
-    # result = []
-    # r_flag = []
-    # for i in range(len(result_jiaquan)):
-    #     flag = True
-    #     value = result_toupiaos[0][i]
-    #     for j in range(len(model_lst)):
-    #         if result_toupiaos[j][i] != value:
-    #             flag = False
-    #             break
-    #     if flag:
-    #         r_flag.append('toupiao')
-    #         result.append(value)
-    #     else:
-    #         # vec = result_jiaquan[i]
-    #         # vec[0] = vec[0] * ans_dis_2.get(zhenglis[i], 1)
-    #         # vec[1] = vec[1] * ans_dis_2.get(fulis[i], 1)
-    #         # vec[2] = vec[2] * ans_dis_2.get('无法确定', 1)
-    #         # r = np.argmax(vec, axis=0)
-    #         # r_flag.append('jiaquan')
-    #         # result.append(r)
-    #         r_flag.append('jiaquan')
-    #         result.append(result_jiaquan[i])
-
-    # 整合
     result = []
     r_flag = []
     for i in range(len(result_jiaquan)):
-
-        r_dict = {}
+        flag = True
+        value = result_toupiaos[0][i]
         for j in range(len(model_lst)):
-            if result_toupiaos[j][i] in r_dict:
-                r_dict[result_toupiaos[j][i]] += 1
-            else:
-                r_dict[result_toupiaos[j][i]] = 1
+            if result_toupiaos[j][i] != value:
+                flag = False
+                break
+        if flag:
+            r_flag.append('toupiao')
+            result.append(value)
+        else:
+            # vec = result_jiaquan[i]
+            # vec[0] = vec[0] * ans_dis_2.get(zhenglis[i], 1)
+            # vec[1] = vec[1] * ans_dis_2.get(fulis[i], 1)
+            # vec[2] = vec[2] * ans_dis_2.get('无法确定', 1)
+            # r = np.argmax(vec, axis=0)
+            # r_flag.append('jiaquan')
+            # result.append(r)
+            r_flag.append('jiaquan')
+            result.append(result_jiaquan[i])
 
-        if len(r_dict) == 1:
-            flag = 'toupiao_5'
-            for k, v in r_dict.items():
-                r = k
-        elif len(r_dict) == 2:
-            flag = 'toupiao_32'
-            for k, v in r_dict.items():
-                if r_dict[k] == 4:
-                    flag = 'toupiao_41'
-                if r_dict[k] == 4 or r_dict[k] == 3:
-                    r = k
-        elif len(r_dict) == 3:
-            flag = 'toupiao_221'
-            for k ,v in r_dict.items():
-                if r_dict[k] == 3:
-                    flag = 'toupiao_311'
-                if r_dict[k] == 2 or r_dict[k] == 3:
-                    r = k
-                    # break
-            if '无法确定' in r_dict and r_dict['无法确定'] == 2:
-                r = '无法确定'
-
-        result.append(r)
-        r_flag.append(flag)
-
+    # # 整合
+    # result = []
+    # r_flag = []
+    # r_value = []
+    # for i in range(len(result_jiaquan)):
+    #
+    #     r_dict = {}
+    #     for j in range(len(model_lst)):
+    #         if result_toupiaos[j][i] in r_dict:
+    #             r_dict[result_toupiaos[j][i]] += 1
+    #         else:
+    #             r_dict[result_toupiaos[j][i]] = 1
+    #
+    #     if len(r_dict) == 1:
+    #         flag = 'toupiao_5'
+    #         for k, v in r_dict.items():
+    #             r = k
+    #     elif len(r_dict) == 2:
+    #         flag = 'toupiao_32'
+    #         for k, v in r_dict.items():
+    #             if r_dict[k] == 4:
+    #                 flag = 'toupiao_41'
+    #             if r_dict[k] == 4 or r_dict[k] == 3:
+    #                 r = k
+    #     elif len(r_dict) == 3:
+    #         flag = 'toupiao_221'
+    #         for k ,v in r_dict.items():
+    #             if r_dict[k] == 3:
+    #                 flag = 'toupiao_311'
+    #             if r_dict[k] == 2 or r_dict[k] == 3:
+    #                 r = k
+    #                 break
+    #
+    #     result.append(r)
+    #     r_flag.append(flag)
+    #     r_value.append(result_jiaquan[i].tolist())
 
 
     # 生成结果
@@ -373,8 +372,9 @@ def test_ensemble(config):
     # to .csv
     if config.is_true_test is False:
         df['answer_pred'] = tmp
-        df['r_flag'] = r_flag
-        df = df[['query_id', 'query', 'passage', 'alternatives', 'answer', 'answer_pred', 'r_flag']]
+        # df['r_flag'] = r_flag
+        # df['r_value'] = r_value
+        df = df[['query_id', 'query', 'passage', 'alternatives', 'answer', 'answer_pred']]
         csv_path = os.path.join('result', 'emsemble'+'_val.csv')
         df.to_csv(csv_path, index=False)
 
