@@ -75,7 +75,7 @@ def split_alter(df, is_test=False):
         alter_list = [a.strip() for a in alter_list]
         if is_test is False:
             alter_set = set(alter_list)
-            if len(alter_set) == 3 and '' not in alter_set:
+            if len(alter_set) == 3 and '' not in alter_set and '无法确定' in alter_set:
                 flag.append(True)
                 a_item.append(alter_list[0])
                 b_item.append(alter_list[1])
@@ -142,6 +142,8 @@ def split_alter(df, is_test=False):
                     c_item.append(alter_list[0])
 
             flag.append(True)
+
+    print('split alter, data num:%d/%d' % (sum(flag), len(flag)))
 
     df['a_item'] = a_item
     df['b_item'] = b_item

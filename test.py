@@ -236,69 +236,6 @@ def test_ensemble(config):
         result_tmp = np.argmax(ans_range, axis=1)
         result_toupiaos.append(result_tmp)
 
-    # 概率修正
-    # ans_dis = 'data_gen/ans_dis.pkl'
-    # with open(ans_dis, 'rb') as file:
-    #     ans_dis = pickle.load(file)
-    #
-    # zhenglis = df['zhengli'].values
-    # fulis = df['fuli'].values
-    # alts = df['alternatives'].values
-    # wfqd_list = wfqd.wfqd_list
-    # ans_dis_1 = {}
-    # num = 0
-    # for i in range(len(df)):
-    #     flag = True
-    #     value = result_toupiaos[0][i]
-    #     for j in range(len(model_lst)):
-    #         if result_toupiaos[j][i] != value:
-    #             flag = False
-    #             break
-    #     if flag:
-    #         num += 1
-    #         alt_list = alts[i].split('|')
-    #         if value == 0:
-    #             word = zhenglis[i]
-    #         elif value == 1:
-    #             word = fulis[i]
-    #         else:
-    #             if alt_list[0].strip() in wfqd_list:
-    #                 word = alt_list[0].strip()
-    #             elif alt_list[1].strip() in wfqd_list:
-    #                 word = alt_list[1].strip()
-    #             else:
-    #                 word = alt_list[2].strip()
-    #
-    #         if word in ans_dis_1:
-    #             ans_dis_1[word] += 1
-    #         else:
-    #             ans_dis_1[word] = 1
-    # # 获取投票一致的word表
-    # ans_dis_1_tmp = {}
-    # for k, v in ans_dis_1.items():
-    #     ans_dis_1_tmp[k] = v/len(df)
-    # ans_dis_1 = ans_dis_1_tmp
-    #
-    # # 获取投票不一致的word表（先验）
-    # num_ratio = 1 - num / len(df)
-    # ans_dis_2_x = {}
-    # for k, v in ans_dis.items():
-    #     ans_dis_2_x[k] = v * num_ratio
-    #
-    # # 获取投票不一致的word（后验）
-    # ans_dis_2_h = {}
-    # for k, v in ans_dis.items():
-    #     if k in ans_dis_1:
-    #         ans_dis_2_h[k] = v - ans_dis_1[k]
-    #     else:
-    #         ans_dis_2_h[k] = v
-    #
-    # # 获取修正概率
-    # ans_dis_2 = {}
-    # for k, v in ans_dis_2_x.items():
-    #     if k in ans_dis_2_h:
-    #         ans_dis_2[k] = ans_dis_2_h[k] / v
-
     # 加权求和： 待修改
     model_lst = config.model_lst
     model_weight = config.model_weight
@@ -317,28 +254,67 @@ def test_ensemble(config):
     result_jiaquan = np.argmax(result_jiaquan, axis=1)
 
     # 整合
+    # result = []
+    # r_flag = []
+    # for i in range(len(result_jiaquan)):
+    #     flag = True
+    #     value = result_toupiaos[0][i]
+    #     for j in range(len(model_lst)):
+    #         if result_toupiaos[j][i] != value:
+    #             flag = False
+    #             break
+    #     if flag:
+    #         r_flag.append('toupiao')
+    #         result.append(value)
+    #     else:
+    #         # vec = result_jiaquan[i]
+    #         # vec[0] = vec[0] * ans_dis_2.get(zhenglis[i], 1)
+    #         # vec[1] = vec[1] * ans_dis_2.get(fulis[i], 1)
+    #         # vec[2] = vec[2] * ans_dis_2.get('无法确定', 1)
+    #         # r = np.argmax(vec, axis=0)
+    #         # r_flag.append('jiaquan')
+    #         # result.append(r)
+    #         r_flag.append('jiaquan')
+    #         result.append(result_jiaquan[i])
+
+    # 整合
     result = []
     r_flag = []
     for i in range(len(result_jiaquan)):
-        flag = True
-        value = result_toupiaos[0][i]
+
+        r_dict = {}
         for j in range(len(model_lst)):
-            if result_toupiaos[j][i] != value:
-                flag = False
-                break
-        if flag:
-            r_flag.append('toupiao')
-            result.append(value)
-        else:
-            # vec = result_jiaquan[i]
-            # vec[0] = vec[0] * ans_dis_2.get(zhenglis[i], 1)
-            # vec[1] = vec[1] * ans_dis_2.get(fulis[i], 1)
-            # vec[2] = vec[2] * ans_dis_2.get('无法确定', 1)
-            # r = np.argmax(vec, axis=0)
-            # r_flag.append('jiaquan')
-            # result.append(r)
-            r_flag.append('jiaquan')
-            result.append(result_jiaquan[i])
+            if result_toupiaos[j][i] in r_dict:
+                r_dict[result_toupiaos[j][i]] += 1
+            else:
+                r_dict[result_toupiaos[j][i]] = 1
+
+        if len(r_dict) == 1:
+            flag = 'toupiao_5'
+            for k, v in r_dict.items():
+                r = k
+        elif len(r_dict) == 2:
+            flag = 'toupiao_32'
+            for k, v in r_dict.items():
+                if r_dict[k] == 4:
+                    flag = 'toupiao_41'
+                if r_dict[k] == 4 or r_dict[k] == 3:
+                    r = k
+        elif len(r_dict) == 3:
+            flag = 'toupiao_221'
+            for k ,v in r_dict.items():
+                if r_dict[k] == 3:
+                    flag = 'toupiao_311'
+                if r_dict[k] == 2 or r_dict[k] == 3:
+                    r = k
+                    # break
+            if '无法确定' in r_dict and r_dict['无法确定'] == 2:
+                r = '无法确定'
+
+        result.append(r)
+        r_flag.append(flag)
+
+
 
     # 生成结果
     a_items = df['a_item'].values
