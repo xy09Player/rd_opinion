@@ -153,6 +153,23 @@ def split_alter(df, is_test=False):
     return df
 
 
+# 将答案为wfqd的sample翻倍
+def add_wfqd(df):
+    answers = df['answer'].values
+    flag = []
+    for a in answers:
+        if a.strip() == '无法确定':
+            flag.append(True)
+        else:
+            flag.append(False)
+    df['flag_wfqd'] = flag
+
+    df_wfqd = df[df['flag_wfqd']].copy()
+    df = pd.concat([df, df_wfqd], axis=0)
+    print('double wfqd samples, total_num:%d, wfqd_num:%d, new_df_num:%d' % (len(answers), len(df_wfqd), len(df)))
+    return df
+
+
 # 长度限定
 # p: 500, q: 30, a: 5
 def jieduan(df):
@@ -393,6 +410,7 @@ def gen_train_val_datafile():
         df = jieduan(df)
         df = df[df['alter_flag']]
         df = df[df['jieduan_flag']]
+        df = add_wfqd(df)
         df.to_csv(config.train_df, encoding='utf-8', index=False)
         print('gen train data, size:%d, time:%d' % (len(df), time.time()-time0))
 

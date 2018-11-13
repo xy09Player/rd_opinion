@@ -6,7 +6,7 @@ from config import config_base
 
 class Config(config_base.ConfigBase):
     model_name = 'm_reader'
-    model_save = model_name + '_7'
+    model_save = model_name + '_20'
     lr = 1e-4
     weight_decay = 0
     is_bn = True
@@ -15,7 +15,7 @@ class Config(config_base.ConfigBase):
     batch_size = 32
     hidden_size = 200
     encoder_layer_num = 1
-    dropout_p = 0.2
+    dropout_p = 0.3
     val_every = 100
     val_mean = False  # 这个指标用来衡量，是否是每隔固定次数验证一次
 
