@@ -290,9 +290,9 @@ def build_vocab_embedding(list_df, vocab_path, embedding_in_zh, embedding_in_en,
 
     # zh
     try:
-        model_zh = gensim.models.KeyedVectors.load_word2vec_format(embedding_in_zh, encoding='utf-8')
+        model_zh = gensim.models.KeyedVectors.load_word2vec_format(embedding_in_zh)
     except Exception as e:
-        model_zh = gensim.models.KeyedVectors.load_word2vec_format(embedding_in_zh, encoding='utf-8', binary=True, unicode_errors='ignore')
+        model_zh = gensim.models.KeyedVectors.load_word2vec_format(embedding_in_zh, binary=True, unicode_errors='ignore')
 
     tmp = set()
     for word in vocab:
