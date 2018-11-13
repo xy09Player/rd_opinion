@@ -75,7 +75,9 @@ def split_alter(df, is_test=False):
         alter_list = [a.strip() for a in alter_list]
         if is_test is False:
             alter_set = set(alter_list)
-            if len(alter_set) == 3 and '' not in alter_set and '无法确定' in alter_set:
+            if len(alter_set) == 3 and '' not in alter_set and ('不确定' in alter_set or '不能确定' in alter_set or
+                                                                '无发确定' in alter_set or '无法确定' in alter_set or
+                                                                '无法确实' in alter_set or '无法确认' in alter_set):
                 flag.append(True)
                 a_item.append(alter_list[0])
                 b_item.append(alter_list[1])
@@ -410,7 +412,6 @@ def gen_train_val_datafile():
         df = jieduan(df)
         df = df[df['alter_flag']]
         df = df[df['jieduan_flag']]
-        df = add_wfqd(df)
         df.to_csv(config.train_df, encoding='utf-8', index=False)
         print('gen train data, size:%d, time:%d' % (len(df), time.time()-time0))
 
