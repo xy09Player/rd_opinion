@@ -21,14 +21,26 @@ def get_ans_dis():
         else:
             answer_dict[answer] = 1
 
-    answer_dict_tmp = {}
+    alters = df['alternatives'].values
+    answer_num = {}
+    for alter in alters:
+        alter_list = alter.split('|')
+        alter_list = [a.strip() for a in alter_list]
+        alter_set = set(alter_list)
+        for word in alter_set:
+            if word != '':
+                if word in answer_num:
+                    answer_num[word] += 1
+                else:
+                    answer_num[word] = 1
+
+    answer_radio = {}
     for k, v in answer_dict.items():
-        answer_dict_tmp[k] = v/len(df)
-    answer_dict = answer_dict_tmp
+        answer_radio[k] = v / answer_num[k]
 
     file_out = '../data_gen/ans_dis.pkl'
     with open(file_out, 'wb') as file:
-        pickle.dump(answer_dict, file)
+        pickle.dump(answer_radio, file)
 
 
 if __name__ == '__main__':

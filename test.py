@@ -245,74 +245,100 @@ def test_ensemble(config):
         ans_range = torch.load(result_path)
         ans_range = np.array(ans_range)
 
-        exp_ans_range = np.exp(ans_range)
-        sum_ans_range = np.sum(exp_ans_range, axis=1).reshape(len(exp_ans_range), -1)
-        ans_range = exp_ans_range/sum_ans_range
-
-        ans_range = ans_range * ans_range
-        result_jiaquan += ans_range * mw
+        # exp_ans_range = np.exp(ans_range)
+        # sum_ans_range = np.sum(exp_ans_range, axis=1).reshape(len(exp_ans_range), -1)
+        # ans_range = exp_ans_range/sum_ans_range
+        #
+        # ans_range = ans_range * ans_range
+        result_jiaquan += ans_range * 1
     result_jiaquan = np.argmax(result_jiaquan, axis=1)
-
-    # 整合
-    # result = []
-    # r_flag = []
-    # for i in range(len(result_jiaquan)):
-    #     flag = True
-    #     value = result_toupiaos[0][i]
-    #     for j in range(len(model_lst)):
-    #         if result_toupiaos[j][i] != value:
-    #             flag = False
-    #             break
-    #     if flag:
-    #         r_flag.append('toupiao')
-    #         result.append(value)
-    #     else:
-    #         # vec = result_jiaquan[i]
-    #         # vec[0] = vec[0] * ans_dis_2.get(zhenglis[i], 1)
-    #         # vec[1] = vec[1] * ans_dis_2.get(fulis[i], 1)
-    #         # vec[2] = vec[2] * ans_dis_2.get('无法确定', 1)
-    #         # r = np.argmax(vec, axis=0)
-    #         # r_flag.append('jiaquan')
-    #         # result.append(r)
-    #         r_flag.append('jiaquan')
-    #         result.append(result_jiaquan[i])
 
     # 整合
     result = []
     r_flag = []
-    r_value = []
     for i in range(len(result_jiaquan)):
-
-        r_dict = {}
+        flag = True
+        value = result_toupiaos[0][i]
         for j in range(len(model_lst)):
-            if result_toupiaos[j][i] in r_dict:
-                r_dict[result_toupiaos[j][i]] += 1
-            else:
-                r_dict[result_toupiaos[j][i]] = 1
+            if result_toupiaos[j][i] != value:
+                flag = False
+                break
+        if flag:
+            r_flag.append('toupiao')
+            result.append(value)
+        else:
+            # vec = result_jiaquan[i]
+            # vec[0] = vec[0] * ans_dis_2.get(zhenglis[i], 1)
+            # vec[1] = vec[1] * ans_dis_2.get(fulis[i], 1)
+            # vec[2] = vec[2] * ans_dis_2.get('无法确定', 1)
+            # r = np.argmax(vec, axis=0)
+            # r_flag.append('jiaquan')
+            # result.append(r)
+            r_flag.append('jiaquan')
+            result.append(result_jiaquan[i])
 
-        if len(r_dict) == 1:
-            flag = 'toupiao_5'
-            for k, v in r_dict.items():
-                r = k
-        elif len(r_dict) == 2:
-            flag = 'toupiao_32'
-            for k, v in r_dict.items():
-                if r_dict[k] == 4:
-                    flag = 'toupiao_41'
-                if r_dict[k] == 4 or r_dict[k] == 3:
-                    r = k
-        elif len(r_dict) == 3:
-            flag = 'toupiao_221'
-            for k ,v in r_dict.items():
-                if r_dict[k] == 3:
-                    flag = 'toupiao_311'
-                if r_dict[k] == 2 or r_dict[k] == 3:
-                    r = k
-                    break
-
-        result.append(r)
-        r_flag.append(flag)
-        r_value.append(result_jiaquan[i].tolist())
+    # 整合
+    # result = []
+    # r_flag = []
+    # alts = df['alternatives'].values
+    # for i in range(len(result_jiaquan)):
+    #     # with open('data_gen/ans_dis.pkl', 'rb') as file:
+    #     #     answer_dict = pickle.load(file)
+    #     alt = alts[i].strip().split('|')
+    #     alt = [aa.strip() for aa in alt]
+    #     alt = alt + [alt[-1]]*(3-len(alt))
+    #
+    #
+    #
+    #     r_dict = {}
+    #     for j in range(len(model_lst)):
+    #         if result_toupiaos[j][i] in r_dict:
+    #             r_dict[result_toupiaos[j][i]] += 1
+    #         else:
+    #             r_dict[result_toupiaos[j][i]] = 1
+    #
+    #     if len(r_dict) == 1:
+    #         flag = 'toupiao_5'
+    #         for k, v in r_dict.items():
+    #             r = k
+    #     elif len(r_dict) == 2:
+    #         flag = 'toupiao_32'
+    #         for k, v in r_dict.items():
+    #             if r_dict[k] == 4:
+    #                 flag = 'toupiao_41'
+    #             if r_dict[k] == 4:
+    #                 r = k
+    #             if r_dict[k] == 2:
+    #                 r = result_jiaquan[i]
+    #     elif len(r_dict) == 3:
+    #         flag = 'toupiao_221'
+    #         r_list = []
+    #         for k, v in r_dict.items():
+    #             if r_dict[k] == 3:
+    #                 flag = 'toupiao_311'
+    #             if r_dict[k] == 3:
+    #                 r = k
+    #             if r_dict[k] == 2:
+    #                 # r = result_jiaquan[i]
+    #                 # if alt_dis[a_index] == 0:
+    #                 #     r = result_jiaquan[i]
+    #                 # else:
+    #                 #     r = a_index
+    #                 r_list.append(k)
+    #         if flag == 'toupiao_221':
+    #             if '不' in alt[r_list[0]]:
+    #                 r = r_list[0]
+    #             elif '不' in alt[r_list[1]]:
+    #                 r = r_list[1]
+    #             else:
+    #                 r = result_jiaquan[i]
+    #
+    #
+    #
+    #
+    #     result.append(r)
+    #     r_flag.append(flag)
+    #     # r_value.append(result_jiaquan[i].tolist())
 
 
     # 生成结果
@@ -372,9 +398,8 @@ def test_ensemble(config):
     # to .csv
     if config.is_true_test is False:
         df['answer_pred'] = tmp
-        # df['r_flag'] = r_flag
-        # df['r_value'] = r_value
-        df = df[['query_id', 'query', 'passage', 'alternatives', 'answer', 'answer_pred']]
+        df['r_flag'] = r_flag
+        df = df[['query_id', 'query', 'passage', 'alternatives', 'answer', 'answer_pred', 'r_flag']]
         csv_path = os.path.join('result', 'emsemble'+'_val.csv')
         df.to_csv(csv_path, index=False)
 
